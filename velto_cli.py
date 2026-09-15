@@ -2,8 +2,9 @@ import sys
 from pathlib import Path
 
 from velto_lexer import tokenize
-from velto_parser import parse
-from velto_ast import run_ast
+from velto_parser import parse, ParserError
+from velto_ast import run_ast, ASTInterpreterError
+from velto_errors import VeltoError
 
 
 def print_usage():
@@ -16,30 +17,103 @@ def print_usage():
     print("  velto examples/hello.vlt")
 
 
+def get_source_line(source, line):
+    if line is None:
+        return None
+
+    lines = source.splitlines()
+
+    if line < 1 or line > len(lines):
+        return None
+
+    return lines[line - 1]
+
+
 def run_file(filename):
     path = Path(filename)
 
     if not path.exists():
-        print(f"Velto Error: File not found: {filename}")
+        error = VeltoError(
+            f"File not found: {filename}",
+            filename
+        )
+
+        print(error.format())
         return 1
 
     if not path.is_file():
-        print(f"Velto Error: Not a file: {filename}")
+        error = VeltoError(
+            f"Not a file: {filename}",
+            filename
+        )
+
+        print(error.format())
         return 1
 
     if path.suffix != ".vlt":
-        print("Velto Error: Source file must use .vlt extension")
+        error = VeltoError(
+            "Source file must use .vlt extension",
+            filename
+        )
+
+        print(error.format())
         return 1
 
     try:
-        source = path.read_text(encoding="utf-8")
+        source = path.read_text(
+            encoding="utf-8"
+        )
+
         tokens = tokenize(source)
         tree = parse(tokens)
+
         run_ast(tree)
+
         return 0
 
+    except ParserError as error:
+        source_line = get_source_line(
+            source,
+            error.line
+        )
+
+        formatted = VeltoError(
+            error.message,
+            filename,
+            error.line,
+            source_line
+        )
+
+        print(formatted.format())
+        return 1
+
+    except ASTInterpreterError as error:
+        source_line = get_source_line(
+            source,
+            error.line
+        )
+
+        formatted = VeltoError(
+            error.message,
+            filename,
+            error.line,
+            source_line
+        )
+
+        print(formatted.format())
+        return 1
+
+    except VeltoError as error:
+        print(error.format())
+        return 1
+
     except Exception as error:
-        print(f"Velto Error: {error}")
+        print(
+            f"Velto Error\n"
+            f"File: {filename}\n\n"
+            f"Error: {error}"
+        )
+
         return 1
 
 
@@ -56,8 +130,12 @@ def main():
         return 0
 
     if len(sys.argv) > 2:
-        print("Velto Error: Only one source file is allowed")
-        print_usage()
+        error = VeltoError(
+            "Only one source file is allowed",
+            sys.argv[1]
+        )
+
+        print(error.format())
         return 1
 
     return run_file(sys.argv[1])

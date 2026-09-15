@@ -24,10 +24,7 @@ from velto_parser import (
 
 
 class ASTInterpreterError(Exception):
-    def __init__(self, message, line=None):
-        self.message = message
-        self.line = line
-        super().__init__(message)
+    pass
 
 
 class BreakSignal(Exception):
@@ -57,17 +54,6 @@ class ASTInterpreter:
         self.functions = {}
         self.loop_limit = 10000
 
-    def error(self, message, node=None):
-        line = None
-
-        if node is not None:
-            line = getattr(node, "line", None)
-
-        raise ASTInterpreterError(
-            message,
-            line
-        )
-
     def evaluate(self, node):
         if isinstance(node, NumberNode):
             return node.value
@@ -89,9 +75,8 @@ class ASTInterpreter:
 
         if isinstance(node, IdentifierNode):
             if node.name not in self.variables:
-                self.error(
-                    f"Variable not found: {node.name}",
-                    node
+                raise ASTInterpreterError(
+                    f"Variable not found: {node.name}"
                 )
 
             return self.variables[node.name]
@@ -103,9 +88,8 @@ class ASTInterpreter:
             try:
                 return value[index]
             except (IndexError, TypeError, KeyError):
-                self.error(
-                    f"Invalid index: {index}",
-                    node
+                raise ASTInterpreterError(
+                    f"Invalid index: {index}"
                 )
 
         if isinstance(node, BinaryOpNode):
@@ -114,9 +98,8 @@ class ASTInterpreter:
         if isinstance(node, CallNode):
             return self.call_function(node)
 
-        self.error(
-            f"Unknown expression node: {type(node).__name__}",
-            node
+        raise ASTInterpreterError(
+            f"Unknown expression node: {type(node).__name__}"
         )
 
     def evaluate_binary(self, node):
@@ -160,21 +143,16 @@ class ASTInterpreter:
                 return left >= right
 
         except (TypeError, ZeroDivisionError) as error:
-            self.error(
-                str(error),
-                node
-            )
+            raise ASTInterpreterError(str(error))
 
-        self.error(
-            f"Unknown operator: {operator}",
-            node
+        raise ASTInterpreterError(
+            f"Unknown operator: {operator}"
         )
 
     def execute(self, node):
         if isinstance(node, Program):
             for statement in node.statements:
                 self.execute(statement)
-
             return
 
         if isinstance(node, AssignmentNode):
@@ -188,17 +166,15 @@ class ASTInterpreter:
             value = self.evaluate(node.value)
 
             if not isinstance(target, list):
-                self.error(
-                    "Index assignment requires a list",
-                    node
+                raise ASTInterpreterError(
+                    "Index assignment requires a list"
                 )
 
             try:
                 target[index] = value
             except (IndexError, TypeError):
-                self.error(
-                    f"Invalid index: {index}",
-                    node
+                raise ASTInterpreterError(
+                    f"Invalid index: {index}"
                 )
 
             return
@@ -229,17 +205,14 @@ class ASTInterpreter:
                 count += 1
 
                 if count > self.loop_limit:
-                    self.error(
-                        "Possible infinite loop",
-                        node
+                    raise ASTInterpreterError(
+                        "Possible infinite loop"
                     )
 
                 try:
                     self.execute_block(node.body)
-
                 except ContinueSignal:
                     continue
-
                 except BreakSignal:
                     break
 
@@ -251,9 +224,8 @@ class ASTInterpreter:
             try:
                 values = list(iterable)
             except TypeError:
-                self.error(
-                    "Object is not iterable",
-                    node
+                raise ASTInterpreterError(
+                    "Object is not iterable"
                 )
 
             for value in values:
@@ -261,10 +233,8 @@ class ASTInterpreter:
 
                 try:
                     self.execute_block(node.body)
-
                 except ContinueSignal:
                     continue
-
                 except BreakSignal:
                     break
 
@@ -290,12 +260,10 @@ class ASTInterpreter:
                 raise ReturnSignal(None)
 
             value = self.evaluate(node.value)
-
             raise ReturnSignal(value)
 
-        self.error(
-            f"Unknown statement node: {type(node).__name__}",
-            node
+        raise ASTInterpreterError(
+            f"Unknown statement node: {type(node).__name__}"
         )
 
     def execute_block(self, statements):
@@ -304,19 +272,17 @@ class ASTInterpreter:
 
     def call_function(self, node):
         if node.name not in self.functions:
-            self.error(
-                f"Function not found: {node.name}",
-                node
+            raise ASTInterpreterError(
+                f"Function not found: {node.name}"
             )
 
         function = self.functions[node.name]
 
         if len(node.arguments) != len(function.parameters):
-            self.error(
+            raise ASTInterpreterError(
                 f"Function {node.name} expects "
                 f"{len(function.parameters)} arguments, "
-                f"got {len(node.arguments)}",
-                node
+                f"got {len(node.arguments)}"
             )
 
         arguments = [
