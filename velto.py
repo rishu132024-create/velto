@@ -5,10 +5,21 @@ import re
 variables = {}
 functions = {}
 modules = {}
+current_file = ""
+current_line = 0
+
+class VeltoError(Exception):
+    def __init__(self, message, line=None):
+        self.message = message
+        self.line = line
+        super().__init__(message)
 
 class ReturnValue(Exception):
     def __init__(self, value):
         self.value = value
+
+def error(message):
+    raise VeltoError(message, current_line)
 
 def split_arguments(text):
     args = []
@@ -37,6 +48,12 @@ def split_arguments(text):
             else:
                 current += char
 
+    if quote:
+        error("Unclosed string")
+
+    if depth != 0:
+        error("Unclosed brackets")
+
     if current.strip():
         args.append(current.strip())
 
@@ -44,6 +61,9 @@ def split_arguments(text):
 
 def get_value(expression, local_vars=None):
     expression = expression.strip()
+
+    if not expression:
+        error("Empty expression")
 
     env = {}
     env.update(variables)
@@ -69,6 +89,7 @@ def get_value(expression, local_vars=None):
         args = split_arguments(args_text)
 
         values = []
+
         for arg in args:
             values.append(get_value(arg, local_vars))
 
@@ -76,10 +97,36 @@ def get_value(expression, local_vars=None):
 
     try:
         return eval(expression, {"__builtins__": {}}, env)
-    except Exception:
-        if expression in env:
-            return env[expression]
-        raise Exception("Invalid expression: " + expression)
+    except NameError:
+        name_match = re.search(
+            r"[A-Za-z_][A-Za-z0-9_\.]*",
+            expression
+        )
+
+        if name_match:
+            name = name_match.group(0)
+
+            if "." not in name and name not in env:
+                error("Variable not found: " + name)
+
+        error("Invalid expression: " + expression)
+
+    except SyntaxError:
+        error("Invalid syntax: " + expression)
+
+    except TypeError:
+        error("Invalid operation: " + expression)
+
+    except IndexError:
+        error("List or string index out of range")
+
+    except KeyError:
+        error("Unknown value: " + expression)
+
+    except Exception as exc:
+        if isinstance(exc, VeltoError):
+            raise
+        error("Could not evaluate: " + expression)
 
 def execute_function_call(function_name, args, caller_vars=None):
     if "." in function_name:
@@ -87,19 +134,27 @@ def execute_function_call(function_name, args, caller_vars=None):
         module_name = parts[0]
         function_part = parts[1]
 
-        if module_name in modules:
-            module_data = modules[module_name]
+        if module_name not in modules:
+            error("Module not found: " + module_name)
 
-            if function_part in module_data["functions"]:
-                function_data = module_data["functions"][function_part]
-                return execute_function(
-                    function_data,
-                    args,
-                    module_data["variables"]
-                )
+        module_data = modules[module_name]
+
+        if function_part not in module_data["functions"]:
+            error(
+                "Function not found: "
+                + function_name
+            )
+
+        function_data = module_data["functions"][function_part]
+
+        return execute_function(
+            function_data,
+            args,
+            module_data["variables"]
+        )
 
     if function_name not in functions:
-        raise Exception("Function not found: " + function_name)
+        error("Function not found: " + function_name)
 
     return execute_function(
         functions[function_name],
@@ -111,16 +166,23 @@ def execute_function(function_data, args, parent_vars=None):
     params = function_data["params"]
     body = function_data["body"]
 
+    if len(args) != len(params):
+        error(
+            "Function expects "
+            + str(len(params))
+            + " argument(s), got "
+            + str(len(args))
+        )
+
     local_vars = {}
 
     if parent_vars:
-        local_vars.update(parent_vars)
+        for key, value in parent_vars.items():
+            if not key.startswith("__"):
+                local_vars[key] = value
 
     for index, param in enumerate(params):
-        if index < len(args):
-            local_vars[param] = args[index]
-        else:
-            local_vars[param] = None
+        local_vars[param] = args[index]
 
     try:
         execute_block(body, local_vars)
@@ -129,18 +191,45 @@ def execute_function(function_data, args, parent_vars=None):
 
     return None
 
+def collect_block(lines, start, indent):
+    block = []
+    j = start
+
+    while j < len(lines):
+        next_line = lines[j]
+
+        if not next_line.strip():
+            block.append(next_line)
+            j += 1
+            continue
+
+        next_indent = len(next_line) - len(next_line.lstrip(" "))
+
+        if next_indent <= indent:
+            break
+
+        if next_indent < indent + 4:
+            error("Invalid indentation")
+
+        block.append(next_line[4:])
+        j += 1
+
+    return block, j
+
 def execute_block(lines, local_vars=None):
+    global current_line
+
     i = 0
 
     while i < len(lines):
+        current_line = i + 1
+
         raw_line = lines[i]
         stripped = raw_line.strip()
 
         if not stripped:
             i += 1
             continue
-
-        indent = len(raw_line) - len(raw_line.lstrip(" "))
 
         if stripped.startswith("function ") and stripped.endswith(":"):
             match = re.match(
@@ -149,40 +238,35 @@ def execute_block(lines, local_vars=None):
             )
 
             if not match:
-                raise Exception("Invalid function definition")
+                error("Invalid function definition")
 
             name = match.group(1)
             params_text = match.group(2)
 
             params = []
+
             if params_text.strip():
-                params = [x.strip() for x in params_text.split(",")]
+                params = [
+                    x.strip()
+                    for x in params_text.split(",")
+                ]
 
-            body = []
-            j = i + 1
+            for param in params:
+                if not re.fullmatch(
+                    r"[A-Za-z_][A-Za-z0-9_]*",
+                    param
+                ):
+                    error("Invalid parameter name: " + param)
 
-            while j < len(lines):
-                next_line = lines[j]
+            indent = len(raw_line) - len(raw_line.lstrip(" "))
 
-                if not next_line.strip():
-                    body.append(next_line)
-                    j += 1
-                    continue
+            body, j = collect_block(
+                lines,
+                i + 1,
+                indent
+            )
 
-                next_indent = len(next_line) - len(next_line.lstrip(" "))
-
-                if next_indent <= indent:
-                    break
-
-                body.append(next_line[4:])
-                j += 1
-
-            target = functions
-
-            if local_vars is not None and "__module__" in local_vars:
-                target = local_vars["__module_functions__"]
-
-            target[name] = {
+            functions[name] = {
                 "params": params,
                 "body": body
             }
@@ -193,10 +277,16 @@ def execute_block(lines, local_vars=None):
         if stripped.startswith("import "):
             module_name = stripped[7:].strip()
 
-            base_dir = local_vars.get(
-                "__base_dir__",
-                os.getcwd()
-            ) if local_vars else os.getcwd()
+            if not re.fullmatch(
+                r"[A-Za-z_][A-Za-z0-9_]*",
+                module_name
+            ):
+                error("Invalid module name: " + module_name)
+
+            base_dir = os.getcwd()
+
+            if local_vars and "__base_dir__" in local_vars:
+                base_dir = local_vars["__base_dir__"]
 
             load_module(module_name, base_dir)
 
@@ -205,50 +295,52 @@ def execute_block(lines, local_vars=None):
 
         if stripped.startswith("if ") and stripped.endswith(":"):
             condition = stripped[3:-1].strip()
-            condition_value = get_value(condition, local_vars)
 
-            true_block = []
+            if not condition:
+                error("Empty if condition")
+
+            condition_value = get_value(
+                condition,
+                local_vars
+            )
+
+            indent = len(raw_line) - len(raw_line.lstrip(" "))
+
+            true_block, j = collect_block(
+                lines,
+                i + 1,
+                indent
+            )
+
             false_block = []
 
-            j = i + 1
+            if j < len(lines):
+                next_stripped = lines[j].strip()
 
-            while j < len(lines):
-                next_line = lines[j]
+                if next_stripped == "else:":
+                    else_indent = len(lines[j]) - len(
+                        lines[j].lstrip(" ")
+                    )
 
-                if not next_line.strip():
-                    j += 1
-                    continue
+                    if else_indent != indent:
+                        error("Invalid indentation before else")
 
-                next_indent = len(next_line) - len(next_line.lstrip(" "))
-
-                if next_indent <= indent:
-                    break
-
-                true_block.append(next_line[4:])
-                j += 1
-
-            if j < len(lines) and lines[j].strip() == "else:":
-                j += 1
-
-                while j < len(lines):
-                    next_line = lines[j]
-
-                    if not next_line.strip():
-                        j += 1
-                        continue
-
-                    next_indent = len(next_line) - len(next_line.lstrip(" "))
-
-                    if next_indent <= indent:
-                        break
-
-                    false_block.append(next_line[4:])
-                    j += 1
+                    false_block, j = collect_block(
+                        lines,
+                        j + 1,
+                        indent
+                    )
 
             if condition_value:
-                execute_block(true_block, local_vars)
+                execute_block(
+                    true_block,
+                    local_vars
+                )
             else:
-                execute_block(false_block, local_vars)
+                execute_block(
+                    false_block,
+                    local_vars
+                )
 
             i = j
             continue
@@ -256,33 +348,29 @@ def execute_block(lines, local_vars=None):
         if stripped.startswith("while ") and stripped.endswith(":"):
             condition = stripped[6:-1].strip()
 
-            loop_block = []
-            j = i + 1
+            if not condition:
+                error("Empty while condition")
 
-            while j < len(lines):
-                next_line = lines[j]
+            indent = len(raw_line) - len(raw_line.lstrip(" "))
 
-                if not next_line.strip():
-                    j += 1
-                    continue
-
-                next_indent = len(next_line) - len(next_line.lstrip(" "))
-
-                if next_indent <= indent:
-                    break
-
-                loop_block.append(next_line[4:])
-                j += 1
+            loop_block, j = collect_block(
+                lines,
+                i + 1,
+                indent
+            )
 
             guard = 0
 
             while get_value(condition, local_vars):
-                execute_block(loop_block, local_vars)
+                execute_block(
+                    loop_block,
+                    local_vars
+                )
 
                 guard += 1
 
                 if guard > 100000:
-                    raise Exception("Possible infinite loop")
+                    error("Possible infinite loop")
 
             i = j
             continue
@@ -294,45 +382,55 @@ def execute_block(lines, local_vars=None):
             )
 
             if not match:
-                raise Exception("Invalid for loop")
+                error("Invalid for loop")
 
             variable_name = match.group(1)
             iterable_expression = match.group(2)
 
-            iterable = get_value(iterable_expression, local_vars)
+            iterable = get_value(
+                iterable_expression,
+                local_vars
+            )
 
-            loop_block = []
-            j = i + 1
+            try:
+                iterator = iter(iterable)
+            except TypeError:
+                error(
+                    "Value is not iterable: "
+                    + iterable_expression
+                )
 
-            while j < len(lines):
-                next_line = lines[j]
+            indent = len(raw_line) - len(raw_line.lstrip(" "))
 
-                if not next_line.strip():
-                    j += 1
-                    continue
+            loop_block, j = collect_block(
+                lines,
+                i + 1,
+                indent
+            )
 
-                next_indent = len(next_line) - len(next_line.lstrip(" "))
-
-                if next_indent <= indent:
-                    break
-
-                loop_block.append(next_line[4:])
-                j += 1
-
-            for item in iterable:
+            for item in iterator:
                 if local_vars is not None:
                     local_vars[variable_name] = item
                 else:
                     variables[variable_name] = item
 
-                execute_block(loop_block, local_vars)
+                execute_block(
+                    loop_block,
+                    local_vars
+                )
 
             i = j
             continue
 
+        if stripped == "else:":
+            error("Unexpected else")
+
         if stripped.startswith("return "):
             expression = stripped[7:].strip()
-            value = get_value(expression, local_vars)
+            value = get_value(
+                expression,
+                local_vars
+            )
             raise ReturnValue(value)
 
         if stripped == "return":
@@ -340,8 +438,14 @@ def execute_block(lines, local_vars=None):
 
         if stripped.startswith("say "):
             expression = stripped[4:].strip()
-            value = get_value(expression, local_vars)
+
+            value = get_value(
+                expression,
+                local_vars
+            )
+
             print(value)
+
             i += 1
             continue
 
@@ -360,12 +464,30 @@ def execute_block(lines, local_vars=None):
             elif variable_name in variables:
                 target_list = variables[variable_name]
             else:
-                raise Exception("Variable not found: " + variable_name)
+                error(
+                    "Variable not found: "
+                    + variable_name
+                )
 
-            index = get_value(index_expression, local_vars)
-            value = get_value(value_expression, local_vars)
+            index = get_value(
+                index_expression,
+                local_vars
+            )
 
-            target_list[index] = value
+            value = get_value(
+                value_expression,
+                local_vars
+            )
+
+            try:
+                target_list[index] = value
+            except TypeError:
+                error(
+                    "Value does not support index assignment: "
+                    + variable_name
+                )
+            except IndexError:
+                error("List index out of range")
 
             i += 1
             continue
@@ -379,7 +501,10 @@ def execute_block(lines, local_vars=None):
             variable_name = assignment.group(1)
             expression = assignment.group(2)
 
-            value = get_value(expression, local_vars)
+            value = get_value(
+                expression,
+                local_vars
+            )
 
             if local_vars is not None:
                 local_vars[variable_name] = value
@@ -389,7 +514,10 @@ def execute_block(lines, local_vars=None):
             i += 1
             continue
 
-        get_value(stripped, local_vars)
+        get_value(
+            stripped,
+            local_vars
+        )
 
         i += 1
 
@@ -398,9 +526,19 @@ def load_module(module_name, base_dir):
         return
 
     possible_files = [
-        os.path.join(base_dir, module_name + ".vlt"),
-        os.path.join(os.getcwd(), module_name + ".vlt"),
-        os.path.join(os.getcwd(), "examples", module_name + ".vlt")
+        os.path.join(
+            base_dir,
+            module_name + ".vlt"
+        ),
+        os.path.join(
+            os.getcwd(),
+            module_name + ".vlt"
+        ),
+        os.path.join(
+            os.getcwd(),
+            "examples",
+            module_name + ".vlt"
+        )
     ]
 
     filename = None
@@ -411,75 +549,232 @@ def load_module(module_name, base_dir):
             break
 
     if filename is None:
-        raise Exception("Module not found: " + module_name + ".vlt")
+        error(
+            "Module not found: "
+            + module_name
+            + ".vlt"
+        )
 
-    with open(filename, "r", encoding="utf-8") as file:
+    with open(
+        filename,
+        "r",
+        encoding="utf-8"
+    ) as file:
         module_lines = file.readlines()
 
     module_variables = {
-        "__base_dir__": os.path.dirname(os.path.abspath(filename))
+        "__base_dir__": os.path.dirname(
+            os.path.abspath(filename)
+        )
     }
 
     module_functions = {}
-
-    module_variables["__module__"] = module_name
-    module_variables["__module_functions__"] = module_functions
-
-    old_variables = variables.copy()
-    old_functions = functions.copy()
 
     modules[module_name] = {
         "variables": module_variables,
         "functions": module_functions
     }
 
+    old_functions = functions.copy()
+
     try:
-        execute_block(module_lines, module_variables)
+        execute_module(
+            module_lines,
+            module_variables,
+            module_functions
+        )
     except Exception:
         modules.pop(module_name, None)
-        variables.clear()
-        variables.update(old_variables)
         functions.clear()
         functions.update(old_functions)
         raise
+
+def execute_module(
+    lines,
+    module_variables,
+    module_functions
+):
+    global current_line
+
+    i = 0
+
+    while i < len(lines):
+        current_line = i + 1
+
+        raw_line = lines[i]
+        stripped = raw_line.strip()
+
+        if not stripped:
+            i += 1
+            continue
+
+        if stripped.startswith("function ") and stripped.endswith(":"):
+            match = re.match(
+                r"function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((.*?)\):",
+                stripped
+            )
+
+            if not match:
+                error("Invalid function definition")
+
+            name = match.group(1)
+            params_text = match.group(2)
+
+            params = []
+
+            if params_text.strip():
+                params = [
+                    x.strip()
+                    for x in params_text.split(",")
+                ]
+
+            indent = len(raw_line) - len(
+                raw_line.lstrip(" ")
+            )
+
+            body, j = collect_block(
+                lines,
+                i + 1,
+                indent
+            )
+
+            module_functions[name] = {
+                "params": params,
+                "body": body
+            }
+
+            i = j
+            continue
+
+        if stripped.startswith("say "):
+            expression = stripped[4:].strip()
+
+            value = get_value(
+                expression,
+                module_variables
+            )
+
+            print(value)
+
+            i += 1
+            continue
+
+        assignment = re.match(
+            r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$",
+            stripped
+        )
+
+        if assignment:
+            variable_name = assignment.group(1)
+            expression = assignment.group(2)
+
+            value = get_value(
+                expression,
+                module_variables
+            )
+
+            module_variables[variable_name] = value
+
+            i += 1
+            continue
+
+        i += 1
 
 def load_program(filename):
     global variables
     global functions
     global modules
+    global current_file
+    global current_line
 
     variables = {}
     functions = {}
     modules = {}
+    current_file = filename
+    current_line = 0
 
-    with open(filename, "r", encoding="utf-8") as file:
+    with open(
+        filename,
+        "r",
+        encoding="utf-8"
+    ) as file:
         lines = file.readlines()
 
-    base_dir = os.path.dirname(os.path.abspath(filename))
+    base_dir = os.path.dirname(
+        os.path.abspath(filename)
+    )
 
     program_vars = {
         "__base_dir__": base_dir
     }
 
-    execute_block(lines, program_vars)
+    execute_block(
+        lines,
+        program_vars
+    )
 
 def main():
+    global current_file
+
     if len(sys.argv) != 2:
-        print("Usage: python velto.py <file.vlt>")
+        print(
+            "Usage: python velto.py <file.vlt>"
+        )
         return
 
     filename = sys.argv[1]
 
     if not os.path.exists(filename):
-        print("Velto Error: File not found: " + filename)
+        print(
+            "Velto Error: File not found: "
+            + filename
+        )
         return
+
+    current_file = filename
 
     try:
         load_program(filename)
+
     except ReturnValue:
-        print("Velto Error: return outside function")
-    except Exception as error:
-        print("Velto Error: " + str(error))
+        print(
+            "Velto Error: "
+            + filename
+            + ":"
+            + str(current_line)
+            + ": return outside function"
+        )
+
+    except VeltoError as exc:
+        if exc.line:
+            print(
+                "Velto Error: "
+                + filename
+                + ":"
+                + str(exc.line)
+            )
+            print(exc.message)
+        else:
+            print(
+                "Velto Error: "
+                + filename
+            )
+            print(exc.message)
+
+    except FileNotFoundError:
+        print(
+            "Velto Error: File not found: "
+            + filename
+        )
+
+    except Exception as exc:
+        print(
+            "Velto Error: "
+            + filename
+            + ":"
+            + str(current_line)
+        )
+        print(str(exc))
 
 if __name__ == "__main__":
     main()
