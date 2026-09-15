@@ -112,6 +112,7 @@ def execute_line(line, variables, functions):
     if not line or line.startswith("#"):
         return
 
+    # SAY
     if line.startswith("say "):
         value = get_value(
             line[4:],
@@ -120,6 +121,7 @@ def execute_line(line, variables, functions):
         print(value)
         return
 
+    # FUNCTION CALL
     match = re.match(
         r'^([a-zA-Z_][a-zA-Z0-9_]*)\((.*)\)$',
         line
@@ -142,6 +144,7 @@ def execute_line(line, variables, functions):
         )
         return
 
+    # VARIABLE
     if "=" in line:
         name, expression = line.split(
             "=",
@@ -176,6 +179,10 @@ def run(code):
 
     lines = code.splitlines()
     i = 0
+
+    # --------------------------------
+    # First pass: find functions
+    # --------------------------------
 
     while i < len(lines):
 
@@ -240,6 +247,9 @@ def run(code):
 
         i += 1
 
+    # --------------------------------
+    # Second pass: execute program
+    # --------------------------------
 
     i = 0
 
@@ -252,6 +262,7 @@ def run(code):
             i += 1
             continue
 
+        # Skip function definitions
         if (
             line.startswith("function ")
             and line.endswith(":")
