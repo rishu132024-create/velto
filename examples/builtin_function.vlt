@@ -1,0 +1,6 @@
+function count_items(items):
+    return len(items)
+
+numbers = [10, 20, 30, 40, 50]
+
+say count_items(numbers)

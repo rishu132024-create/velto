@@ -1,0 +1,6 @@
+a = 50
+b = 20
+c = 80
+
+say min(a, b, c)
+say max(a, b, c)

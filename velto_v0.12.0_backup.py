@@ -59,76 +59,6 @@ def split_arguments(text):
 
     return args
 
-def builtin_function(name, args):
-    try:
-        if name == "len":
-            if len(args) != 1:
-                error("len() expects 1 argument")
-            return len(args[0])
-
-        if name == "str":
-            if len(args) != 1:
-                error("str() expects 1 argument")
-            return str(args[0])
-
-        if name == "int":
-            if len(args) != 1:
-                error("int() expects 1 argument")
-            return int(args[0])
-
-        if name == "float":
-            if len(args) != 1:
-                error("float() expects 1 argument")
-            return float(args[0])
-
-        if name == "abs":
-            if len(args) != 1:
-                error("abs() expects 1 argument")
-            return abs(args[0])
-
-        if name == "min":
-            if len(args) < 1:
-                error("min() expects at least 1 argument")
-            return min(args)
-
-        if name == "max":
-            if len(args) < 1:
-                error("max() expects at least 1 argument")
-            return max(args)
-
-        if name == "range":
-            if len(args) == 1:
-                return list(range(args[0]))
-
-            if len(args) == 2:
-                return list(range(args[0], args[1]))
-
-            if len(args) == 3:
-                return list(range(args[0], args[1], args[2]))
-
-            error("range() expects 1 to 3 arguments")
-
-        return None
-
-    except VeltoError:
-        raise
-    except ValueError:
-        error("Invalid value for " + name + "()")
-    except TypeError:
-        error("Invalid argument type for " + name + "()")
-
-def is_builtin(name):
-    return name in [
-        "len",
-        "str",
-        "int",
-        "float",
-        "abs",
-        "min",
-        "max",
-        "range"
-    ]
-
 def get_value(expression, local_vars=None):
     expression = expression.strip()
 
@@ -163,32 +93,20 @@ def get_value(expression, local_vars=None):
         for arg in args:
             values.append(get_value(arg, local_vars))
 
-        if "." not in function_name and is_builtin(function_name):
-            return builtin_function(function_name, values)
-
-        return execute_function_call(
-            function_name,
-            values,
-            local_vars
-        )
+        return execute_function_call(function_name, values, local_vars)
 
     try:
-        return eval(
-            expression,
-            {"__builtins__": {}},
-            env
-        )
-
+        return eval(expression, {"__builtins__": {}}, env)
     except NameError:
         name_match = re.search(
-            r"[A-Za-z_][A-Za-z0-9_]*",
+            r"[A-Za-z_][A-Za-z0-9_\.]*",
             expression
         )
 
         if name_match:
             name = name_match.group(0)
 
-            if name not in env and not is_builtin(name):
+            if "." not in name and name not in env:
                 error("Variable not found: " + name)
 
         error("Invalid expression: " + expression)
@@ -202,7 +120,12 @@ def get_value(expression, local_vars=None):
     except IndexError:
         error("List or string index out of range")
 
-    except Exception:
+    except KeyError:
+        error("Unknown value: " + expression)
+
+    except Exception as exc:
+        if isinstance(exc, VeltoError):
+            raise
         error("Could not evaluate: " + expression)
 
 def execute_function_call(function_name, args, caller_vars=None):
@@ -222,8 +145,10 @@ def execute_function_call(function_name, args, caller_vars=None):
                 + function_name
             )
 
+        function_data = module_data["functions"][function_part]
+
         return execute_function(
-            module_data["functions"][function_part],
+            function_data,
             args,
             module_data["variables"]
         )
@@ -278,9 +203,7 @@ def collect_block(lines, start, indent):
             j += 1
             continue
 
-        next_indent = len(next_line) - len(
-            next_line.lstrip(" ")
-        )
+        next_indent = len(next_line) - len(next_line.lstrip(" "))
 
         if next_indent <= indent:
             break
@@ -333,14 +256,9 @@ def execute_block(lines, local_vars=None):
                     r"[A-Za-z_][A-Za-z0-9_]*",
                     param
                 ):
-                    error(
-                        "Invalid parameter name: "
-                        + param
-                    )
+                    error("Invalid parameter name: " + param)
 
-            indent = len(raw_line) - len(
-                raw_line.lstrip(" ")
-            )
+            indent = len(raw_line) - len(raw_line.lstrip(" "))
 
             body, j = collect_block(
                 lines,
@@ -363,20 +281,14 @@ def execute_block(lines, local_vars=None):
                 r"[A-Za-z_][A-Za-z0-9_]*",
                 module_name
             ):
-                error(
-                    "Invalid module name: "
-                    + module_name
-                )
+                error("Invalid module name: " + module_name)
 
             base_dir = os.getcwd()
 
             if local_vars and "__base_dir__" in local_vars:
                 base_dir = local_vars["__base_dir__"]
 
-            load_module(
-                module_name,
-                base_dir
-            )
+            load_module(module_name, base_dir)
 
             i += 1
             continue
@@ -392,9 +304,7 @@ def execute_block(lines, local_vars=None):
                 local_vars
             )
 
-            indent = len(raw_line) - len(
-                raw_line.lstrip(" ")
-            )
+            indent = len(raw_line) - len(raw_line.lstrip(" "))
 
             true_block, j = collect_block(
                 lines,
@@ -405,7 +315,16 @@ def execute_block(lines, local_vars=None):
             false_block = []
 
             if j < len(lines):
-                if lines[j].strip() == "else:":
+                next_stripped = lines[j].strip()
+
+                if next_stripped == "else:":
+                    else_indent = len(lines[j]) - len(
+                        lines[j].lstrip(" ")
+                    )
+
+                    if else_indent != indent:
+                        error("Invalid indentation before else")
+
                     false_block, j = collect_block(
                         lines,
                         j + 1,
@@ -432,9 +351,7 @@ def execute_block(lines, local_vars=None):
             if not condition:
                 error("Empty while condition")
 
-            indent = len(raw_line) - len(
-                raw_line.lstrip(" ")
-            )
+            indent = len(raw_line) - len(raw_line.lstrip(" "))
 
             loop_block, j = collect_block(
                 lines,
@@ -444,10 +361,7 @@ def execute_block(lines, local_vars=None):
 
             guard = 0
 
-            while get_value(
-                condition,
-                local_vars
-            ):
+            while get_value(condition, local_vars):
                 execute_block(
                     loop_block,
                     local_vars
@@ -486,9 +400,7 @@ def execute_block(lines, local_vars=None):
                     + iterable_expression
                 )
 
-            indent = len(raw_line) - len(
-                raw_line.lstrip(" ")
-            )
+            indent = len(raw_line) - len(raw_line.lstrip(" "))
 
             loop_block, j = collect_block(
                 lines,
@@ -515,12 +427,10 @@ def execute_block(lines, local_vars=None):
 
         if stripped.startswith("return "):
             expression = stripped[7:].strip()
-
             value = get_value(
                 expression,
                 local_vars
             )
-
             raise ReturnValue(value)
 
         if stripped == "return":
@@ -549,10 +459,7 @@ def execute_block(lines, local_vars=None):
             index_expression = list_assignment.group(2)
             value_expression = list_assignment.group(3)
 
-            if (
-                local_vars is not None
-                and variable_name in local_vars
-            ):
+            if local_vars is not None and variable_name in local_vars:
                 target_list = local_vars[variable_name]
             elif variable_name in variables:
                 target_list = variables[variable_name]
@@ -870,5 +777,4 @@ def main():
         print(str(exc))
 
 if __name__ == "__main__":
-   
     main()
