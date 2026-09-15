@@ -1,0 +1,7 @@
+import math_module
+
+x = math_module.add(100, 50)
+y = math_module.multiply(x, 2)
+
+say x
+say y

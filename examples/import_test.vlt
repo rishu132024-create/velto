@@ -1,0 +1,4 @@
+import math_module
+
+say math_module.add(10, 20)
+say math_module.multiply(5, 6)
