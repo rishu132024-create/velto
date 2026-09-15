@@ -1,0 +1,15 @@
+x = 10
+
+if x > 5:
+    say "Greater"
+else:
+    say "Smaller"
+
+count = 1
+
+while count <= 3:
+    say count
+    count = count + 1
+
+for number in "Velto":
+    say number

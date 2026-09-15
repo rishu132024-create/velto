@@ -2,6 +2,14 @@ class ASTInterpreterError(Exception):
     pass
 
 
+class BreakSignal(Exception):
+    pass
+
+
+class ContinueSignal(Exception):
+    pass
+
+
 class ASTInterpreter:
     def __init__(self):
         self.variables = {}
@@ -24,6 +32,7 @@ class ASTInterpreter:
                 raise ASTInterpreterError(
                     f"Variable not found: {node.name}"
                 )
+
             return self.variables[node.name]
 
         if isinstance(node, BinaryOpNode):
@@ -38,47 +47,54 @@ class ASTInterpreter:
         right = self.evaluate(node.right)
         operator = node.operator
 
-        if operator == "+":
-            return left + right
+        try:
+            if operator == "+":
+                return left + right
 
-        if operator == "-":
-            return left - right
+            if operator == "-":
+                return left - right
 
-        if operator == "*":
-            return left * right
+            if operator == "*":
+                return left * right
 
-        if operator == "/":
-            return left / right
+            if operator == "/":
+                return left / right
 
-        if operator == "%":
-            return left % right
+            if operator == "%":
+                return left % right
 
-        if operator == "==":
-            return left == right
+            if operator == "==":
+                return left == right
 
-        if operator == "!=":
-            return left != right
+            if operator == "!=":
+                return left != right
 
-        if operator == "<":
-            return left < right
+            if operator == "<":
+                return left < right
 
-        if operator == ">":
-            return left > right
+            if operator == ">":
+                return left > right
 
-        if operator == "<=":
-            return left <= right
+            if operator == "<=":
+                return left <= right
 
-        if operator == ">=":
-            return left >= right
+            if operator == ">=":
+                return left >= right
+
+        except Exception as error:
+            raise ASTInterpreterError(str(error))
 
         raise ASTInterpreterError(
             f"Unknown operator: {operator}"
         )
 
+    def execute_block(self, statements):
+        for statement in statements:
+            self.execute(statement)
+
     def execute(self, node):
         if isinstance(node, Program):
-            for statement in node.statements:
-                self.execute(statement)
+            self.execute_block(node.statements)
             return
 
         if isinstance(node, AssignmentNode):
@@ -95,6 +111,68 @@ class ASTInterpreter:
             self.evaluate(node.expression)
             return
 
+        if isinstance(node, IfNode):
+            condition = self.evaluate(node.condition)
+
+            if condition:
+                self.execute_block(node.body)
+            elif node.else_body is not None:
+                self.execute_block(node.else_body)
+
+            return
+
+        if isinstance(node, WhileNode):
+            loop_count = 0
+
+            while self.evaluate(node.condition):
+                loop_count += 1
+
+                if loop_count > 100000:
+                    raise ASTInterpreterError(
+                        "Possible infinite loop"
+                    )
+
+                try:
+                    self.execute_block(node.body)
+
+                except ContinueSignal:
+                    continue
+
+                except BreakSignal:
+                    break
+
+            return
+
+        if isinstance(node, ForNode):
+            iterable = self.evaluate(node.iterable)
+
+            try:
+                values = list(iterable)
+            except TypeError:
+                raise ASTInterpreterError(
+                    "Object is not iterable"
+                )
+
+            for value in values:
+                self.variables[node.variable] = value
+
+                try:
+                    self.execute_block(node.body)
+
+                except ContinueSignal:
+                    continue
+
+                except BreakSignal:
+                    break
+
+            return
+
+        if isinstance(node, BreakNode):
+            raise BreakSignal()
+
+        if isinstance(node, ContinueNode):
+            raise ContinueSignal()
+
         raise ASTInterpreterError(
             f"Unknown statement node: {type(node).__name__}"
         )
@@ -110,7 +188,12 @@ from velto_parser import (
     BinaryOpNode,
     AssignmentNode,
     SayNode,
-    ExpressionStatementNode
+    ExpressionStatementNode,
+    IfNode,
+    WhileNode,
+    ForNode,
+    BreakNode,
+    ContinueNode
 )
 
 

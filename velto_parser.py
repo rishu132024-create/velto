@@ -86,6 +86,45 @@ class ExpressionStatementNode(ASTNode):
         return f"ExpressionStatement({self.expression!r})"
 
 
+class IfNode(ASTNode):
+    def __init__(self, condition, body, else_body=None):
+        self.condition = condition
+        self.body = body
+        self.else_body = else_body
+
+    def __repr__(self):
+        return f"If({self.condition!r}, {self.body!r}, {self.else_body!r})"
+
+
+class WhileNode(ASTNode):
+    def __init__(self, condition, body):
+        self.condition = condition
+        self.body = body
+
+    def __repr__(self):
+        return f"While({self.condition!r}, {self.body!r})"
+
+
+class ForNode(ASTNode):
+    def __init__(self, variable, iterable, body):
+        self.variable = variable
+        self.iterable = iterable
+        self.body = body
+
+    def __repr__(self):
+        return f"For({self.variable!r}, {self.iterable!r}, {self.body!r})"
+
+
+class BreakNode(ASTNode):
+    def __repr__(self):
+        return "Break()"
+
+
+class ContinueNode(ASTNode):
+    def __repr__(self):
+        return "Continue()"
+
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -165,6 +204,23 @@ class Parser:
         if self.check("KEYWORD", "say"):
             return self.parse_say()
 
+        if self.check("KEYWORD", "if"):
+            return self.parse_if()
+
+        if self.check("KEYWORD", "while"):
+            return self.parse_while()
+
+        if self.check("KEYWORD", "for"):
+            return self.parse_for()
+
+        if self.check("KEYWORD", "break"):
+            self.advance()
+            return BreakNode()
+
+        if self.check("KEYWORD", "continue"):
+            self.advance()
+            return ContinueNode()
+
         if self.check("IDENTIFIER") and self.peek().token_type == "OPERATOR":
             if self.peek().value == "=":
                 return self.parse_assignment()
@@ -181,6 +237,72 @@ class Parser:
         self.expect("OPERATOR", "=")
         value = self.parse_expression()
         return AssignmentNode(name, value)
+
+    def parse_if(self):
+        self.expect("KEYWORD", "if")
+
+        condition = self.parse_expression()
+
+        self.expect("DELIMITER", ":")
+        self.expect("NEWLINE")
+        self.expect("INDENT")
+
+        body = self.parse_block()
+
+        else_body = None
+
+        if self.check("KEYWORD", "else"):
+            self.advance()
+            self.expect("DELIMITER", ":")
+            self.expect("NEWLINE")
+            self.expect("INDENT")
+            else_body = self.parse_block()
+
+        return IfNode(condition, body, else_body)
+
+    def parse_while(self):
+        self.expect("KEYWORD", "while")
+
+        condition = self.parse_expression()
+
+        self.expect("DELIMITER", ":")
+        self.expect("NEWLINE")
+        self.expect("INDENT")
+
+        body = self.parse_block()
+
+        return WhileNode(condition, body)
+
+    def parse_for(self):
+        self.expect("KEYWORD", "for")
+
+        variable = self.expect("IDENTIFIER").value
+
+        self.expect("KEYWORD", "in")
+
+        iterable = self.parse_expression()
+
+        self.expect("DELIMITER", ":")
+        self.expect("NEWLINE")
+        self.expect("INDENT")
+
+        body = self.parse_block()
+
+        return ForNode(variable, iterable, body)
+
+    def parse_block(self):
+        statements = []
+
+        self.skip_newlines()
+
+        while not self.check("DEDENT") and not self.check("EOF"):
+            statements.append(self.parse_statement())
+            self.skip_newlines()
+
+        if self.check("DEDENT"):
+            self.advance()
+
+        return statements
 
     def parse_expression_statement(self):
         expression = self.parse_expression()
@@ -237,6 +359,7 @@ class Parser:
         if self.check("OPERATOR", "-"):
             operator = self.advance().value
             value = self.parse_unary()
+
             return BinaryOpNode(
                 NumberNode(0),
                 operator,
