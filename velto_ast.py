@@ -35,6 +35,28 @@ class ASTInterpreter:
 
             return self.variables[node.name]
 
+        if isinstance(node, ListNode):
+            return [
+                self.evaluate(element)
+                for element in node.elements
+            ]
+
+        if isinstance(node, IndexNode):
+            value = self.evaluate(node.value)
+            index = self.evaluate(node.index)
+
+            if not isinstance(index, int):
+                raise ASTInterpreterError(
+                    "List or string index must be an integer"
+                )
+
+            try:
+                return value[index]
+            except (IndexError, TypeError):
+                raise ASTInterpreterError(
+                    f"Index out of range: {index}"
+                )
+
         if isinstance(node, BinaryOpNode):
             return self.evaluate_binary(node)
 
@@ -102,6 +124,30 @@ class ASTInterpreter:
             self.variables[node.name] = value
             return
 
+        if isinstance(node, IndexAssignmentNode):
+            target = self.evaluate(node.target)
+            index = self.evaluate(node.index)
+            value = self.evaluate(node.value)
+
+            if not isinstance(index, int):
+                raise ASTInterpreterError(
+                    "List or string index must be an integer"
+                )
+
+            if not isinstance(target, list):
+                raise ASTInterpreterError(
+                    "Only lists can be modified by index"
+                )
+
+            try:
+                target[index] = value
+            except IndexError:
+                raise ASTInterpreterError(
+                    f"Index out of range: {index}"
+                )
+
+            return
+
         if isinstance(node, SayNode):
             value = self.evaluate(node.value)
             print(value)
@@ -146,14 +192,12 @@ class ASTInterpreter:
         if isinstance(node, ForNode):
             iterable = self.evaluate(node.iterable)
 
-            try:
-                values = list(iterable)
-            except TypeError:
+            if not isinstance(iterable, (list, str)):
                 raise ASTInterpreterError(
                     "Object is not iterable"
                 )
 
-            for value in values:
+            for value in iterable:
                 self.variables[node.variable] = value
 
                 try:
@@ -185,8 +229,11 @@ from velto_parser import (
     IdentifierNode,
     BooleanNode,
     NoneNode,
+    ListNode,
+    IndexNode,
     BinaryOpNode,
     AssignmentNode,
+    IndexAssignmentNode,
     SayNode,
     ExpressionStatementNode,
     IfNode,

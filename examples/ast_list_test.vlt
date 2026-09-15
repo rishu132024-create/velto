@@ -1,0 +1,12 @@
+numbers = [10, 20, 30, 40]
+
+say numbers
+say numbers[0]
+say numbers[1]
+say numbers[2]
+say numbers[3]
+
+numbers[1] = 99
+
+say numbers
+say numbers[1]

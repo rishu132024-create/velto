@@ -1,0 +1,5 @@
+numbers = [[10, 20], [30, 40]]
+
+say numbers
+say numbers[0][0]
+say numbers[1][1]

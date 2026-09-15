@@ -1,0 +1,9 @@
+name = "Velto"
+numbers = [10, 20, 30]
+
+say name[0]
+say name[4]
+say numbers[0] + numbers[1]
+
+for number in numbers:
+    say number

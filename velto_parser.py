@@ -1,3 +1,4 @@
+
 class ParserError(Exception):
     pass
 
@@ -51,6 +52,23 @@ class NoneNode(ASTNode):
         return "NoneValue()"
 
 
+class ListNode(ASTNode):
+    def __init__(self, elements):
+        self.elements = elements
+
+    def __repr__(self):
+        return f"List({self.elements!r})"
+
+
+class IndexNode(ASTNode):
+    def __init__(self, value, index):
+        self.value = value
+        self.index = index
+
+    def __repr__(self):
+        return f"Index({self.value!r}, {self.index!r})"
+
+
 class BinaryOpNode(ASTNode):
     def __init__(self, left, operator, right):
         self.left = left
@@ -68,6 +86,16 @@ class AssignmentNode(ASTNode):
 
     def __repr__(self):
         return f"Assignment({self.name!r}, {self.value!r})"
+
+
+class IndexAssignmentNode(ASTNode):
+    def __init__(self, target, index, value):
+        self.target = target
+        self.index = index
+        self.value = value
+
+    def __repr__(self):
+        return f"IndexAssignment({self.target!r}, {self.index!r}, {self.value!r})"
 
 
 class SayNode(ASTNode):
@@ -221,9 +249,14 @@ class Parser:
             self.advance()
             return ContinueNode()
 
-        if self.check("IDENTIFIER") and self.peek().token_type == "OPERATOR":
-            if self.peek().value == "=":
-                return self.parse_assignment()
+        if self.check("IDENTIFIER"):
+            if self.peek().token_type == "OPERATOR":
+                if self.peek().value == "=":
+                    return self.parse_assignment()
+
+            if self.peek().token_type == "DELIMITER":
+                if self.peek().value == "[":
+                    return self.parse_possible_index_assignment()
 
         return self.parse_expression_statement()
 
@@ -237,6 +270,23 @@ class Parser:
         self.expect("OPERATOR", "=")
         value = self.parse_expression()
         return AssignmentNode(name, value)
+
+    def parse_possible_index_assignment(self):
+        target = self.parse_primary()
+
+        if not isinstance(target, IndexNode):
+            raise ParserError(
+                f"Invalid assignment target at line {self.current().line}"
+            )
+
+        self.expect("OPERATOR", "=")
+        value = self.parse_expression()
+
+        return IndexAssignmentNode(
+            target.value,
+            target.index,
+            value
+        )
 
     def parse_if(self):
         self.expect("KEYWORD", "if")
@@ -366,7 +416,17 @@ class Parser:
                 value
             )
 
-        return self.parse_primary()
+        return self.parse_postfix()
+
+    def parse_postfix(self):
+        node = self.parse_primary()
+
+        while self.match("DELIMITER", "[") is not None:
+            index = self.parse_expression()
+            self.expect("DELIMITER", "]")
+            node = IndexNode(node, index)
+
+        return node
 
     def parse_primary(self):
         token = self.current()
@@ -399,6 +459,20 @@ class Parser:
             if token.value == "none":
                 self.advance()
                 return NoneNode()
+
+        if self.match("DELIMITER", "["):
+            elements = []
+
+            if not self.check("DELIMITER", "]"):
+                while True:
+                    elements.append(self.parse_expression())
+
+                    if self.match("DELIMITER", ",") is None:
+                        break
+
+            self.expect("DELIMITER", "]")
+
+            return ListNode(elements)
 
         if self.match("DELIMITER", "("):
             expression = self.parse_expression()
