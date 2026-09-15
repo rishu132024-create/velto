@@ -41,10 +41,11 @@ class ReturnSignal(Exception):
 
 
 class Function:
-    def __init__(self, name, parameters, body):
+    def __init__(self, name, parameters, body, closure):
         self.name = name
         self.parameters = parameters
         self.body = body
+        self.closure = closure
 
 
 class ASTInterpreter:
@@ -142,9 +143,7 @@ class ASTInterpreter:
                 return left >= right
 
         except (TypeError, ZeroDivisionError) as error:
-            raise ASTInterpreterError(
-                str(error)
-            )
+            raise ASTInterpreterError(str(error))
 
         raise ASTInterpreterError(
             f"Unknown operator: {operator}"
@@ -154,14 +153,11 @@ class ASTInterpreter:
         if isinstance(node, Program):
             for statement in node.statements:
                 self.execute(statement)
-
             return
 
         if isinstance(node, AssignmentNode):
             value = self.evaluate(node.value)
-
             self.variables[node.name] = value
-
             return
 
         if isinstance(node, IndexAssignmentNode):
@@ -185,29 +181,20 @@ class ASTInterpreter:
 
         if isinstance(node, SayNode):
             value = self.evaluate(node.value)
-
             print(value)
-
             return
 
         if isinstance(node, ExpressionStatementNode):
             self.evaluate(node.expression)
-
             return
 
         if isinstance(node, IfNode):
-            condition = self.evaluate(
-                node.condition
-            )
+            condition = self.evaluate(node.condition)
 
             if condition:
-                self.execute_block(
-                    node.body
-                )
+                self.execute_block(node.body)
             elif node.else_body is not None:
-                self.execute_block(
-                    node.else_body
-                )
+                self.execute_block(node.else_body)
 
             return
 
@@ -223,9 +210,7 @@ class ASTInterpreter:
                     )
 
                 try:
-                    self.execute_block(
-                        node.body
-                    )
+                    self.execute_block(node.body)
                 except ContinueSignal:
                     continue
                 except BreakSignal:
@@ -234,9 +219,7 @@ class ASTInterpreter:
             return
 
         if isinstance(node, ForNode):
-            iterable = self.evaluate(
-                node.iterable
-            )
+            iterable = self.evaluate(node.iterable)
 
             try:
                 values = list(iterable)
@@ -246,14 +229,10 @@ class ASTInterpreter:
                 )
 
             for value in values:
-                self.variables[
-                    node.variable
-                ] = value
+                self.variables[node.variable] = value
 
                 try:
-                    self.execute_block(
-                        node.body
-                    )
+                    self.execute_block(node.body)
                 except ContinueSignal:
                     continue
                 except BreakSignal:
@@ -271,19 +250,16 @@ class ASTInterpreter:
             self.functions[node.name] = Function(
                 node.name,
                 node.parameters,
-                node.body
+                node.body,
+                dict(self.variables)
             )
-
             return
 
         if isinstance(node, ReturnNode):
             if node.value is None:
                 raise ReturnSignal(None)
 
-            value = self.evaluate(
-                node.value
-            )
-
+            value = self.evaluate(node.value)
             raise ReturnSignal(value)
 
         raise ASTInterpreterError(
@@ -302,9 +278,7 @@ class ASTInterpreter:
 
         function = self.functions[node.name]
 
-        if len(node.arguments) != len(
-            function.parameters
-        ):
+        if len(node.arguments) != len(function.parameters):
             raise ASTInterpreterError(
                 f"Function {node.name} expects "
                 f"{len(function.parameters)} arguments, "
@@ -318,21 +292,21 @@ class ASTInterpreter:
 
         old_variables = self.variables
 
-        self.variables = dict(
-            zip(
-                function.parameters,
-                arguments
-            )
-        )
+        local_variables = dict(function.closure)
+
+        for parameter, argument in zip(
+            function.parameters,
+            arguments
+        ):
+            local_variables[parameter] = argument
+
+        self.variables = local_variables
 
         try:
-            self.execute_block(
-                function.body
-            )
+            self.execute_block(function.body)
 
         except ReturnSignal as signal:
             self.variables = old_variables
-
             return signal.value
 
         self.variables = old_variables
@@ -342,5 +316,4 @@ class ASTInterpreter:
 
 def run_ast(tree):
     interpreter = ASTInterpreter()
-
     interpreter.execute(tree)

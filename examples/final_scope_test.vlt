@@ -1,0 +1,10 @@
+x = 100
+
+function test(a):
+    x = a + 10
+    return x
+
+result = test(20)
+
+say x
+say result
