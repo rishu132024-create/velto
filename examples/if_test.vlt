@@ -1,0 +1,6 @@
+age = 15
+
+if age >= 18:
+    say "You are an adult"
+else:
+    say "You are not an adult"

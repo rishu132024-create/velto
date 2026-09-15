@@ -1,7 +1,7 @@
 import sys
 import re
 
-VERSION = "0.2.1"
+VERSION = "0.1.0"
 
 
 class VeltoError(Exception):
@@ -45,57 +45,21 @@ def get_value(text, variables):
 
 def run(code):
     variables = {}
-    lines = code.splitlines()
-    i = 0
 
-    while i < len(lines):
-        original_line = lines[i]
+    for line_number, original_line in enumerate(
+        code.splitlines(), 1
+    ):
         line = original_line.strip()
 
-        if not line or line.startswith("#"):
-            i += 1
+        if not line:
+            continue
+
+        if line.startswith("#"):
             continue
 
         try:
 
-            if line.startswith("if ") and line.endswith(":"):
-                condition = line[3:-1].strip()
-                result = bool(calculate(condition, variables))
-
-                i += 1
-
-                if i < len(lines) and lines[i].startswith("    "):
-                    block_line = lines[i].strip()
-
-                    if result:
-                        if block_line.startswith("say "):
-                            value = get_value(
-                                block_line[4:],
-                                variables
-                            )
-                            print(value)
-
-                    i += 1
-
-                if i < len(lines) and lines[i].strip() == "else:":
-                    i += 1
-
-                    if i < len(lines) and lines[i].startswith("    "):
-                        block_line = lines[i].strip()
-
-                        if not result:
-                            if block_line.startswith("say "):
-                                value = get_value(
-                                    block_line[4:],
-                                    variables
-                                )
-                                print(value)
-
-                        i += 1
-
-                continue
-
-            elif line.startswith("say "):
+            if line.startswith("say "):
                 value = get_value(
                     line[4:],
                     variables
@@ -103,7 +67,10 @@ def run(code):
                 print(value)
 
             elif "=" in line:
-                name, expression = line.split("=", 1)
+                name, expression = line.split(
+                    "=",
+                    1
+                )
 
                 name = name.strip()
                 expression = expression.strip()
@@ -128,18 +95,26 @@ def run(code):
 
         except VeltoError as error:
             print()
-            print(f"Velto Error on line {i + 1}:")
-            print(f"  {original_line}")
-            print(f"  {error}")
-
-        i += 1
+            print(
+                f"Velto Error on line "
+                f"{line_number}:"
+            )
+            print(
+                f"  {original_line}"
+            )
+            print(
+                f"  {error}"
+            )
 
 
 def main():
 
     if len(sys.argv) != 2:
         print(f"Velto {VERSION}")
-        print("Usage: python velto.py <file.vlt>")
+        print(
+            "Usage: python velto.py "
+            "<file.vlt>"
+        )
         return
 
     filename = sys.argv[1]
@@ -156,7 +131,8 @@ def main():
 
     except FileNotFoundError:
         print(
-            f"Velto Error: File not found: {filename}"
+            f"Velto Error: "
+            f"File not found: {filename}"
         )
 
 
