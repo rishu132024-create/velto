@@ -1,0 +1,14 @@
+# My first Velto program
+
+say "Hello World!"
+
+name = "Velto"
+say name
+
+x = 10
+y = 20
+
+say x + y
+say x * y
+say x - y
+say x / y
