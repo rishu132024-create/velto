@@ -1,0 +1,4 @@
+word = "Hi"
+
+say word * 3
+say "Velto" * 2

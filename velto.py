@@ -2,19 +2,10 @@ import sys
 import re
 
 
-# ==============================
-# Velto 0.7.0
-# ==============================
-
-
 class ReturnValue(Exception):
     def __init__(self, value):
         self.value = value
 
-
-# ------------------------------
-# Argument splitter
-# ------------------------------
 
 def split_arguments(text):
     args = []
@@ -32,19 +23,15 @@ def split_arguments(text):
         if char in ('"', "'"):
             quote = char
             current += char
-
         elif char in "([{":
             depth += 1
             current += char
-
         elif char in ")]}":
             depth -= 1
             current += char
-
         elif char == "," and depth == 0:
             args.append(current.strip())
             current = ""
-
         else:
             current += char
 
@@ -54,25 +41,17 @@ def split_arguments(text):
     return args
 
 
-# ------------------------------
-# Replace Velto values
-# ------------------------------
-
 def prepare_expression(expr):
     expr = re.sub(r"\btrue\b", "True", expr)
     expr = re.sub(r"\bfalse\b", "False", expr)
     return expr
 
 
-# ------------------------------
-# Safe calculation
-# ------------------------------
-
 def calculate(expr, variables, functions):
     expr = expr.strip()
 
-    # Direct function call
     match = re.fullmatch(r"([A-Za-z_]\w*)\((.*)\)", expr)
+
     if match:
         name = match.group(1)
         args_text = match.group(2)
@@ -86,7 +65,6 @@ def calculate(expr, variables, functions):
 
             return execute_function(name, args, functions)
 
-    # Replace variables/list indexes with safe Python values.
     env = {}
 
     for name, value in variables.items():
@@ -105,7 +83,7 @@ def calculate(expr, variables, functions):
         raise ValueError(f"Unknown value: {e}")
 
     except IndexError:
-        raise ValueError("List index out of range")
+        raise ValueError("Index out of range")
 
     except TypeError as e:
         raise ValueError(str(e))
@@ -117,17 +95,12 @@ def calculate(expr, variables, functions):
         raise ValueError(str(e))
 
 
-# ------------------------------
-# Get value
-# ------------------------------
-
 def get_value(text, variables, functions):
     text = text.strip()
 
     if not text:
         return ""
 
-    # Function call
     match = re.fullmatch(r"([A-Za-z_]\w*)\((.*)\)", text)
 
     if match:
@@ -143,13 +116,6 @@ def get_value(text, variables, functions):
 
             return execute_function(name, args, functions)
 
-    # Variable / list indexing / arithmetic
-    try:
-        return calculate(text, variables, functions)
-    except ValueError:
-        pass
-
-    # String
     if (
         len(text) >= 2
         and text[0] in ('"', "'")
@@ -157,14 +123,12 @@ def get_value(text, variables, functions):
     ):
         return text[1:-1]
 
-    # Boolean
     if text == "true":
         return True
 
     if text == "false":
         return False
 
-    # Integer / float
     try:
         if "." in text:
             return float(text)
@@ -172,16 +136,16 @@ def get_value(text, variables, functions):
     except ValueError:
         pass
 
-    # Variable
+    try:
+        return calculate(text, variables, functions)
+    except ValueError:
+        pass
+
     if text in variables:
         return variables[text]
 
     raise ValueError(f"Unknown value: {text}")
 
-
-# ------------------------------
-# Format output
-# ------------------------------
 
 def format_value(value):
     if isinstance(value, bool):
@@ -196,10 +160,6 @@ def format_value(value):
     return str(value)
 
 
-# ------------------------------
-# Execute function
-# ------------------------------
-
 def execute_function(name, args, functions):
     if name not in functions:
         raise ValueError(f"Unknown function: {name}")
@@ -208,8 +168,7 @@ def execute_function(name, args, functions):
 
     if len(args) != len(params):
         raise ValueError(
-            f"Function '{name}' expects {len(params)} argument(s), "
-            f"got {len(args)}"
+            f"Function '{name}' expects {len(params)} argument(s), got {len(args)}"
         )
 
     local_variables = {}
@@ -219,16 +178,11 @@ def execute_function(name, args, functions):
 
     try:
         execute_lines(body, local_variables, functions)
-
     except ReturnValue as ret:
         return ret.value
 
     return None
 
-
-# ------------------------------
-# Collect block
-# ------------------------------
 
 def collect_block(lines, start_index):
     body = []
@@ -251,10 +205,6 @@ def collect_block(lines, start_index):
     return body, i
 
 
-# ------------------------------
-# Execute lines
-# ------------------------------
-
 def execute_lines(lines, variables, functions):
     i = 0
     loop_counter = 0
@@ -264,19 +214,13 @@ def execute_lines(lines, variables, functions):
         raw_line = lines[i]
         line = raw_line.strip()
 
-        # Empty line
         if not line:
             i += 1
             continue
 
-        # Comment
         if line.startswith("#"):
             i += 1
             continue
-
-        # --------------------------
-        # Function
-        # --------------------------
 
         if line.startswith("function "):
             match = re.match(
@@ -305,10 +249,6 @@ def execute_lines(lines, variables, functions):
             i = next_index
             continue
 
-        # --------------------------
-        # Return
-        # --------------------------
-
         if line.startswith("return"):
             value_text = line[6:].strip()
 
@@ -322,10 +262,6 @@ def execute_lines(lines, variables, functions):
                 value = None
 
             raise ReturnValue(value)
-
-        # --------------------------
-        # If
-        # --------------------------
 
         if line.startswith("if ") and line.endswith(":"):
             condition = line[3:-1].strip()
@@ -366,10 +302,6 @@ def execute_lines(lines, variables, functions):
             i = final_index
             continue
 
-        # --------------------------
-        # While
-        # --------------------------
-
         if line.startswith("while ") and line.endswith(":"):
             condition = line[6:-1].strip()
 
@@ -399,10 +331,6 @@ def execute_lines(lines, variables, functions):
             i = next_index
             continue
 
-        # --------------------------
-        # say
-        # --------------------------
-
         if line.startswith("say "):
             expression = line[4:].strip()
 
@@ -416,10 +344,6 @@ def execute_lines(lines, variables, functions):
 
             i += 1
             continue
-
-        # --------------------------
-        # List item assignment
-        # --------------------------
 
         match = re.match(
             r"^([A-Za-z_]\w*)\[(.+)\]\s*=\s*(.+)$",
@@ -454,15 +378,11 @@ def execute_lines(lines, variables, functions):
                 collection[index] = value
             except IndexError:
                 raise ValueError(
-                    "List index out of range"
+                    "Index out of range"
                 )
 
             i += 1
             continue
-
-        # --------------------------
-        # Variable assignment
-        # --------------------------
 
         match = re.match(
             r"^([A-Za-z_]\w*)\s*=\s*(.+)$",
@@ -483,10 +403,6 @@ def execute_lines(lines, variables, functions):
 
             i += 1
             continue
-
-        # --------------------------
-        # Standalone function call
-        # --------------------------
 
         match = re.fullmatch(
             r"([A-Za-z_]\w*)\((.*)\)",
@@ -528,10 +444,6 @@ def execute_lines(lines, variables, functions):
         )
 
 
-# ------------------------------
-# Run file
-# ------------------------------
-
 def run_file(filename):
     try:
         with open(
@@ -554,22 +466,12 @@ def run_file(filename):
         print("Velto Error: return outside function")
 
     except Exception as e:
-        line_number = getattr(
-            e,
-            "line_number",
-            None
-        )
-
         print(f"Velto Error: {e}")
 
 
-# ------------------------------
-# CLI
-# ------------------------------
-
 def main():
     if len(sys.argv) != 2:
-        print("Velto 0.7.0")
+        print("Velto 0.8.0")
         print("Usage: python velto.py <file.vlt>")
         return
 

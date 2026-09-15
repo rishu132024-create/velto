@@ -1,0 +1,5 @@
+name = "Velto"
+message = "Hello World"
+
+say name
+say message

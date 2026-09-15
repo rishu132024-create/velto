@@ -1,0 +1,5 @@
+first = "Hello"
+second = "Velto"
+
+say first + second
+say first + " " + second

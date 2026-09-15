@@ -1,0 +1,7 @@
+name = "Velto"
+
+if name == "Velto":
+    say "Correct"
+
+if name != "Python":
+    say "Not Python"

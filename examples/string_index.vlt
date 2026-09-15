@@ -1,0 +1,7 @@
+name = "Velto"
+
+say name[0]
+say name[1]
+say name[2]
+say name[3]
+say name[4]
