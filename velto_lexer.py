@@ -175,7 +175,6 @@ class Lexer:
         )
 
     def handle_indentation(self):
-        start = self.position
         spaces = 0
 
         while self.current_char() == " ":
