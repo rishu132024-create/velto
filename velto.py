@@ -1,7 +1,7 @@
 import sys
 import re
 
-VERSION = "0.2.1"
+VERSION = "0.3.0"
 
 
 class VeltoError(Exception):
@@ -43,6 +43,41 @@ def get_value(text, variables):
     return calculate(text, variables)
 
 
+def execute_line(line, variables):
+    line = line.strip()
+
+    if not line or line.startswith("#"):
+        return
+
+    if line.startswith("say "):
+        value = get_value(line[4:], variables)
+        print(value)
+
+    elif "=" in line:
+        name, expression = line.split("=", 1)
+
+        name = name.strip()
+        expression = expression.strip()
+
+        if not re.match(
+            r'^[a-zA-Z_][a-zA-Z0-9_]*$',
+            name
+        ):
+            raise VeltoError(
+                f"Invalid variable name: {name}"
+            )
+
+        variables[name] = get_value(
+            expression,
+            variables
+        )
+
+    else:
+        raise VeltoError(
+            f"Unknown command: {line}"
+        )
+
+
 def run(code):
     variables = {}
     lines = code.splitlines()
@@ -59,78 +94,95 @@ def run(code):
         try:
 
             if line.startswith("if ") and line.endswith(":"):
+
                 condition = line[3:-1].strip()
-                result = bool(calculate(condition, variables))
+
+                result = bool(
+                    calculate(condition, variables)
+                )
 
                 i += 1
 
-                if i < len(lines) and lines[i].startswith("    "):
+                if (
+                    i < len(lines)
+                    and lines[i].startswith("    ")
+                ):
                     block_line = lines[i].strip()
 
                     if result:
-                        if block_line.startswith("say "):
-                            value = get_value(
-                                block_line[4:],
-                                variables
-                            )
-                            print(value)
+                        execute_line(
+                            block_line,
+                            variables
+                        )
 
                     i += 1
 
-                if i < len(lines) and lines[i].strip() == "else:":
+                if (
+                    i < len(lines)
+                    and lines[i].strip() == "else:"
+                ):
                     i += 1
 
-                    if i < len(lines) and lines[i].startswith("    "):
+                    if (
+                        i < len(lines)
+                        and lines[i].startswith("    ")
+                    ):
                         block_line = lines[i].strip()
 
                         if not result:
-                            if block_line.startswith("say "):
-                                value = get_value(
-                                    block_line[4:],
-                                    variables
-                                )
-                                print(value)
+                            execute_line(
+                                block_line,
+                                variables
+                            )
 
                         i += 1
 
                 continue
 
-            elif line.startswith("say "):
-                value = get_value(
-                    line[4:],
-                    variables
-                )
-                print(value)
+            elif line.startswith("while ") and line.endswith(":"):
 
-            elif "=" in line:
-                name, expression = line.split("=", 1)
+                condition = line[6:-1].strip()
 
-                name = name.strip()
-                expression = expression.strip()
+                i += 1
 
-                if not re.match(
-                    r'^[a-zA-Z_][a-zA-Z0-9_]*$',
-                    name
+                block = []
+
+                while (
+                    i < len(lines)
+                    and lines[i].startswith("    ")
                 ):
-                    raise VeltoError(
-                        f"Invalid variable name: {name}"
-                    )
+                    block.append(lines[i].strip())
+                    i += 1
 
-                variables[name] = get_value(
-                    expression,
-                    variables
-                )
+                while bool(
+                    calculate(condition, variables)
+                ):
+                    for block_line in block:
+                        execute_line(
+                            block_line,
+                            variables
+                        )
+
+                continue
 
             else:
-                raise VeltoError(
-                    f"Unknown command: {line}"
+                execute_line(
+                    line,
+                    variables
                 )
 
         except VeltoError as error:
+
             print()
-            print(f"Velto Error on line {i + 1}:")
-            print(f"  {original_line}")
-            print(f"  {error}")
+            print(
+                f"Velto Error on line {i + 1}:"
+            )
+            print(
+                f"  {original_line}"
+            )
+            print(
+                f"  {error}"
+            )
 
         i += 1
 
@@ -139,7 +191,9 @@ def main():
 
     if len(sys.argv) != 2:
         print(f"Velto {VERSION}")
-        print("Usage: python velto.py <file.vlt>")
+        print(
+            "Usage: python velto.py <file.vlt>"
+        )
         return
 
     filename = sys.argv[1]
