@@ -1,3 +1,28 @@
+from velto_parser import (
+    Program,
+    NumberNode,
+    StringNode,
+    IdentifierNode,
+    BooleanNode,
+    NoneNode,
+    ListNode,
+    IndexNode,
+    BinaryOpNode,
+    AssignmentNode,
+    IndexAssignmentNode,
+    SayNode,
+    ExpressionStatementNode,
+    IfNode,
+    WhileNode,
+    ForNode,
+    BreakNode,
+    ContinueNode,
+    FunctionDefNode,
+    CallNode,
+    ReturnNode
+)
+
+
 class ASTInterpreterError(Exception):
     pass
 
@@ -10,9 +35,23 @@ class ContinueSignal(Exception):
     pass
 
 
+class ReturnSignal(Exception):
+    def __init__(self, value):
+        self.value = value
+
+
+class Function:
+    def __init__(self, name, parameters, body):
+        self.name = name
+        self.parameters = parameters
+        self.body = body
+
+
 class ASTInterpreter:
     def __init__(self):
         self.variables = {}
+        self.functions = {}
+        self.loop_limit = 10000
 
     def evaluate(self, node):
         if isinstance(node, NumberNode):
@@ -27,6 +66,12 @@ class ASTInterpreter:
         if isinstance(node, NoneNode):
             return None
 
+        if isinstance(node, ListNode):
+            return [
+                self.evaluate(element)
+                for element in node.elements
+            ]
+
         if isinstance(node, IdentifierNode):
             if node.name not in self.variables:
                 raise ASTInterpreterError(
@@ -35,30 +80,22 @@ class ASTInterpreter:
 
             return self.variables[node.name]
 
-        if isinstance(node, ListNode):
-            return [
-                self.evaluate(element)
-                for element in node.elements
-            ]
-
         if isinstance(node, IndexNode):
             value = self.evaluate(node.value)
             index = self.evaluate(node.index)
 
-            if not isinstance(index, int):
-                raise ASTInterpreterError(
-                    "List or string index must be an integer"
-                )
-
             try:
                 return value[index]
-            except (IndexError, TypeError):
+            except (IndexError, TypeError, KeyError):
                 raise ASTInterpreterError(
-                    f"Index out of range: {index}"
+                    f"Invalid index: {index}"
                 )
 
         if isinstance(node, BinaryOpNode):
             return self.evaluate_binary(node)
+
+        if isinstance(node, CallNode):
+            return self.call_function(node)
 
         raise ASTInterpreterError(
             f"Unknown expression node: {type(node).__name__}"
@@ -67,6 +104,7 @@ class ASTInterpreter:
     def evaluate_binary(self, node):
         left = self.evaluate(node.left)
         right = self.evaluate(node.right)
+
         operator = node.operator
 
         try:
@@ -103,25 +141,27 @@ class ASTInterpreter:
             if operator == ">=":
                 return left >= right
 
-        except Exception as error:
-            raise ASTInterpreterError(str(error))
+        except (TypeError, ZeroDivisionError) as error:
+            raise ASTInterpreterError(
+                str(error)
+            )
 
         raise ASTInterpreterError(
             f"Unknown operator: {operator}"
         )
 
-    def execute_block(self, statements):
-        for statement in statements:
-            self.execute(statement)
-
     def execute(self, node):
         if isinstance(node, Program):
-            self.execute_block(node.statements)
+            for statement in node.statements:
+                self.execute(statement)
+
             return
 
         if isinstance(node, AssignmentNode):
             value = self.evaluate(node.value)
+
             self.variables[node.name] = value
+
             return
 
         if isinstance(node, IndexAssignmentNode):
@@ -129,83 +169,93 @@ class ASTInterpreter:
             index = self.evaluate(node.index)
             value = self.evaluate(node.value)
 
-            if not isinstance(index, int):
-                raise ASTInterpreterError(
-                    "List or string index must be an integer"
-                )
-
             if not isinstance(target, list):
                 raise ASTInterpreterError(
-                    "Only lists can be modified by index"
+                    "Index assignment requires a list"
                 )
 
             try:
                 target[index] = value
-            except IndexError:
+            except (IndexError, TypeError):
                 raise ASTInterpreterError(
-                    f"Index out of range: {index}"
+                    f"Invalid index: {index}"
                 )
 
             return
 
         if isinstance(node, SayNode):
             value = self.evaluate(node.value)
+
             print(value)
+
             return
 
         if isinstance(node, ExpressionStatementNode):
             self.evaluate(node.expression)
+
             return
 
         if isinstance(node, IfNode):
-            condition = self.evaluate(node.condition)
+            condition = self.evaluate(
+                node.condition
+            )
 
             if condition:
-                self.execute_block(node.body)
+                self.execute_block(
+                    node.body
+                )
             elif node.else_body is not None:
-                self.execute_block(node.else_body)
+                self.execute_block(
+                    node.else_body
+                )
 
             return
 
         if isinstance(node, WhileNode):
-            loop_count = 0
+            count = 0
 
             while self.evaluate(node.condition):
-                loop_count += 1
+                count += 1
 
-                if loop_count > 100000:
+                if count > self.loop_limit:
                     raise ASTInterpreterError(
                         "Possible infinite loop"
                     )
 
                 try:
-                    self.execute_block(node.body)
-
+                    self.execute_block(
+                        node.body
+                    )
                 except ContinueSignal:
                     continue
-
                 except BreakSignal:
                     break
 
             return
 
         if isinstance(node, ForNode):
-            iterable = self.evaluate(node.iterable)
+            iterable = self.evaluate(
+                node.iterable
+            )
 
-            if not isinstance(iterable, (list, str)):
+            try:
+                values = list(iterable)
+            except TypeError:
                 raise ASTInterpreterError(
                     "Object is not iterable"
                 )
 
-            for value in iterable:
-                self.variables[node.variable] = value
+            for value in values:
+                self.variables[
+                    node.variable
+                ] = value
 
                 try:
-                    self.execute_block(node.body)
-
+                    self.execute_block(
+                        node.body
+                    )
                 except ContinueSignal:
                     continue
-
                 except BreakSignal:
                     break
 
@@ -217,33 +267,80 @@ class ASTInterpreter:
         if isinstance(node, ContinueNode):
             raise ContinueSignal()
 
+        if isinstance(node, FunctionDefNode):
+            self.functions[node.name] = Function(
+                node.name,
+                node.parameters,
+                node.body
+            )
+
+            return
+
+        if isinstance(node, ReturnNode):
+            if node.value is None:
+                raise ReturnSignal(None)
+
+            value = self.evaluate(
+                node.value
+            )
+
+            raise ReturnSignal(value)
+
         raise ASTInterpreterError(
             f"Unknown statement node: {type(node).__name__}"
         )
 
+    def execute_block(self, statements):
+        for statement in statements:
+            self.execute(statement)
 
-from velto_parser import (
-    Program,
-    NumberNode,
-    StringNode,
-    IdentifierNode,
-    BooleanNode,
-    NoneNode,
-    ListNode,
-    IndexNode,
-    BinaryOpNode,
-    AssignmentNode,
-    IndexAssignmentNode,
-    SayNode,
-    ExpressionStatementNode,
-    IfNode,
-    WhileNode,
-    ForNode,
-    BreakNode,
-    ContinueNode
-)
+    def call_function(self, node):
+        if node.name not in self.functions:
+            raise ASTInterpreterError(
+                f"Function not found: {node.name}"
+            )
+
+        function = self.functions[node.name]
+
+        if len(node.arguments) != len(
+            function.parameters
+        ):
+            raise ASTInterpreterError(
+                f"Function {node.name} expects "
+                f"{len(function.parameters)} arguments, "
+                f"got {len(node.arguments)}"
+            )
+
+        arguments = [
+            self.evaluate(argument)
+            for argument in node.arguments
+        ]
+
+        old_variables = self.variables
+
+        self.variables = dict(
+            zip(
+                function.parameters,
+                arguments
+            )
+        )
+
+        try:
+            self.execute_block(
+                function.body
+            )
+
+        except ReturnSignal as signal:
+            self.variables = old_variables
+
+            return signal.value
+
+        self.variables = old_variables
+
+        return None
 
 
 def run_ast(tree):
     interpreter = ASTInterpreter()
+
     interpreter.execute(tree)

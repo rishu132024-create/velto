@@ -1,13 +1,4 @@
-x = 1
+function greet():
+    say "Hello Velto"
 
-while x <= 3:
-    say x
-    x = x + 1
-
-if x >= 4:
-    say "Loop finished"
-
-function hello:
-    say "Hello!"
-
-hello()
+greet()

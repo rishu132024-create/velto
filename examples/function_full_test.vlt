@@ -1,0 +1,8 @@
+function square(x):
+    return x * x
+
+numbers = [1, 2, 3, 4]
+
+for number in numbers:
+    if number > 2:
+        say square(number)
