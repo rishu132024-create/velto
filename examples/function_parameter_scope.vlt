@@ -1,0 +1,8 @@
+name = "Velto"
+
+function greet(name):
+    say name
+
+greet("Python")
+
+say name

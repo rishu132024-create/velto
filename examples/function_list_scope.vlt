@@ -1,0 +1,9 @@
+numbers = [10, 20, 30]
+
+function change():
+    numbers[0] = 99
+    say numbers
+
+change()
+
+say numbers

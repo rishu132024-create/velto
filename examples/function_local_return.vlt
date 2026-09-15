@@ -1,0 +1,8 @@
+function calculate(a, b):
+    total = a + b
+    result = total * 2
+    return result
+
+answer = calculate(10, 20)
+
+say answer

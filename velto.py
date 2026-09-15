@@ -63,7 +63,12 @@ def calculate(expr, variables, functions):
                 for arg in split_arguments(args_text):
                     args.append(get_value(arg, variables, functions))
 
-            return execute_function(name, args, functions)
+            return execute_function(
+                name,
+                args,
+                functions,
+                variables
+            )
 
     env = {}
 
@@ -112,9 +117,20 @@ def get_value(text, variables, functions):
 
             if args_text.strip():
                 for arg in split_arguments(args_text):
-                    args.append(get_value(arg, variables, functions))
+                    args.append(
+                        get_value(
+                            arg,
+                            variables,
+                            functions
+                        )
+                    )
 
-            return execute_function(name, args, functions)
+            return execute_function(
+                name,
+                args,
+                functions,
+                variables
+            )
 
     if (
         len(text) >= 2
@@ -137,7 +153,11 @@ def get_value(text, variables, functions):
         pass
 
     try:
-        return calculate(text, variables, functions)
+        return calculate(
+            text,
+            variables,
+            functions
+        )
     except ValueError:
         pass
 
@@ -152,32 +172,52 @@ def format_value(value):
         return "true" if value else "false"
 
     if isinstance(value, list):
-        return "[" + ", ".join(format_value(x) for x in value) + "]"
+        return "[" + ", ".join(
+            format_value(x) for x in value
+        ) + "]"
 
     if isinstance(value, str):
-        return f'"{value}"'
+        return value
 
     return str(value)
 
 
-def execute_function(name, args, functions):
+def execute_function(
+    name,
+    args,
+    functions,
+    parent_variables=None
+):
     if name not in functions:
-        raise ValueError(f"Unknown function: {name}")
+        raise ValueError(
+            f"Unknown function: {name}"
+        )
 
     params, body = functions[name]
 
     if len(args) != len(params):
         raise ValueError(
-            f"Function '{name}' expects {len(params)} argument(s), got {len(args)}"
+            f"Function '{name}' expects "
+            f"{len(params)} argument(s), "
+            f"got {len(args)}"
         )
 
     local_variables = {}
+
+    if parent_variables:
+        for key, value in parent_variables.items():
+            local_variables[key] = value
 
     for param, value in zip(params, args):
         local_variables[param] = value
 
     try:
-        execute_lines(body, local_variables, functions)
+        execute_lines(
+            body,
+            local_variables,
+            functions
+        )
+
     except ReturnValue as ret:
         return ret.value
 
@@ -205,7 +245,11 @@ def collect_block(lines, start_index):
     return body, i
 
 
-def execute_lines(lines, variables, functions):
+def execute_lines(
+    lines,
+    variables,
+    functions
+):
     i = 0
     loop_counter = 0
     max_loops = 100000
@@ -224,12 +268,15 @@ def execute_lines(lines, variables, functions):
 
         if line.startswith("function "):
             match = re.match(
-                r"function\s+([A-Za-z_]\w*)\s*\((.*?)\)\s*:",
+                r"function\s+([A-Za-z_]\w*)\s*"
+                r"\((.*?)\)\s*:",
                 line
             )
 
             if not match:
-                raise ValueError("Invalid function declaration")
+                raise ValueError(
+                    "Invalid function declaration"
+                )
 
             name = match.group(1)
             params_text = match.group(2)
@@ -237,14 +284,22 @@ def execute_lines(lines, variables, functions):
             if params_text.strip():
                 params = [
                     p.strip()
-                    for p in split_arguments(params_text)
+                    for p in split_arguments(
+                        params_text
+                    )
                 ]
             else:
                 params = []
 
-            body, next_index = collect_block(lines, i + 1)
+            body, next_index = collect_block(
+                lines,
+                i + 1
+            )
 
-            functions[name] = (params, body)
+            functions[name] = (
+                params,
+                body
+            )
 
             i = next_index
             continue
@@ -272,14 +327,18 @@ def execute_lines(lines, variables, functions):
                 functions
             )
 
-            true_body, next_index = collect_block(lines, i + 1)
+            true_body, next_index = collect_block(
+                lines,
+                i + 1
+            )
 
             false_body = []
             final_index = next_index
 
             if (
                 next_index < len(lines)
-                and lines[next_index].strip() == "else:"
+                and lines[next_index].strip()
+                == "else:"
             ):
                 false_body, final_index = collect_block(
                     lines,
@@ -338,10 +397,14 @@ def execute_lines(lines, variables, functions):
             )
 
             if not match:
-                raise ValueError("Invalid for loop")
+                raise ValueError(
+                    "Invalid for loop"
+                )
 
             variable_name = match.group(1)
-            collection_expression = match.group(2).strip()
+            collection_expression = (
+                match.group(2).strip()
+            )
 
             collection = get_value(
                 collection_expression,
@@ -349,7 +412,10 @@ def execute_lines(lines, variables, functions):
                 functions
             )
 
-            if not isinstance(collection, (list, str)):
+            if not isinstance(
+                collection,
+                (list, str)
+            ):
                 raise ValueError(
                     "for loop needs a list or string"
                 )
@@ -407,7 +473,9 @@ def execute_lines(lines, variables, functions):
                     f"Unknown variable: {variable_name}"
                 )
 
-            collection = variables[variable_name]
+            collection = variables[
+                variable_name
+            ]
 
             index = get_value(
                 index_expression,
@@ -472,7 +540,9 @@ def execute_lines(lines, variables, functions):
             args = []
 
             if args_text.strip():
-                for arg in split_arguments(args_text):
+                for arg in split_arguments(
+                    args_text
+                ):
                     args.append(
                         get_value(
                             arg,
@@ -484,7 +554,8 @@ def execute_lines(lines, variables, functions):
             execute_function(
                 name,
                 args,
-                functions
+                functions,
+                variables
             )
 
             i += 1
@@ -514,22 +585,33 @@ def run_file(filename):
         )
 
     except ReturnValue:
-        print("Velto Error: return outside function")
+        print(
+            "Velto Error: "
+            "return outside function"
+        )
 
     except Exception as e:
-        print(f"Velto Error: {e}")
+        print(
+            f"Velto Error: {e}"
+        )
 
 
 def main():
     if len(sys.argv) != 2:
-        print("Velto 0.9.0")
-        print("Usage: python velto.py <file.vlt>")
+        print("Velto 0.10.0")
+        print(
+            "Usage: "
+            "python velto.py <file.vlt>"
+        )
         return
 
     filename = sys.argv[1]
 
     if not filename.endswith(".vlt"):
-        print("Velto Error: file must end with .vlt")
+        print(
+            "Velto Error: "
+            "file must end with .vlt"
+        )
         return
 
     run_file(filename)

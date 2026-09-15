@@ -1,0 +1,9 @@
+x = 100
+
+function test():
+    x = 50
+    say x
+
+test()
+
+say x

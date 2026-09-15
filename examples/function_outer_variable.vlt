@@ -1,0 +1,7 @@
+message = "Hello Velto"
+
+function show():
+    say message
+
+show()
+
