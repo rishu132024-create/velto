@@ -1,5 +1,8 @@
-function add(a, b):
-    say a + b
+function square(x):
+    return x * x
 
-add(10, 20)
-add(5, 7)
+say square(5)
+say square(10)
+
+a = square(7)
+say a
