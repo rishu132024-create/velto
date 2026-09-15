@@ -1,0 +1,7 @@
+function double(number):
+    return number * 2
+
+numbers = [5, 10, 15]
+
+for number in numbers:
+    say double(number)

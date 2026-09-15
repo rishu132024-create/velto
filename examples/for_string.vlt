@@ -1,0 +1,4 @@
+name = "Velto"
+
+for letter in name:
+    say letter

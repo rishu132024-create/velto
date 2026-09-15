@@ -331,6 +331,53 @@ def execute_lines(lines, variables, functions):
             i = next_index
             continue
 
+        if line.startswith("for ") and line.endswith(":"):
+            match = re.match(
+                r"for\s+([A-Za-z_]\w*)\s+in\s+(.+):",
+                line
+            )
+
+            if not match:
+                raise ValueError("Invalid for loop")
+
+            variable_name = match.group(1)
+            collection_expression = match.group(2).strip()
+
+            collection = get_value(
+                collection_expression,
+                variables,
+                functions
+            )
+
+            if not isinstance(collection, (list, str)):
+                raise ValueError(
+                    "for loop needs a list or string"
+                )
+
+            body, next_index = collect_block(
+                lines,
+                i + 1
+            )
+
+            for item in collection:
+                loop_counter += 1
+
+                if loop_counter > max_loops:
+                    raise ValueError(
+                        "Loop stopped: too many iterations"
+                    )
+
+                variables[variable_name] = item
+
+                execute_lines(
+                    body,
+                    variables,
+                    functions
+                )
+
+            i = next_index
+            continue
+
         if line.startswith("say "):
             expression = line[4:].strip()
 
@@ -379,6 +426,10 @@ def execute_lines(lines, variables, functions):
             except IndexError:
                 raise ValueError(
                     "Index out of range"
+                )
+            except TypeError:
+                raise ValueError(
+                    "Invalid index assignment"
                 )
 
             i += 1
@@ -471,7 +522,7 @@ def run_file(filename):
 
 def main():
     if len(sys.argv) != 2:
-        print("Velto 0.8.0")
+        print("Velto 0.9.0")
         print("Usage: python velto.py <file.vlt>")
         return
 
