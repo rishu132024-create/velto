@@ -1,0 +1,7 @@
+function show(items):
+    say items
+    say items[0]
+
+numbers = [100, 200, 300]
+
+show(numbers)

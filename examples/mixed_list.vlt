@@ -1,0 +1,6 @@
+data = [10, "Velto", true]
+
+say data
+say data[0]
+say data[1]
+say data[2]

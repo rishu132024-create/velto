@@ -1,0 +1,4 @@
+numbers = [10, 20, 30]
+
+say numbers[0] + numbers[1]
+say numbers[1] * numbers[2]

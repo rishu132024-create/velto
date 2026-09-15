@@ -1,0 +1,8 @@
+function make_list():
+    return [10, 20, 30]
+
+items = make_list()
+
+say items
+say items[1]
+

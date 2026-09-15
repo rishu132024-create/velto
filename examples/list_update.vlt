@@ -1,0 +1,8 @@
+numbers = [10, 20, 30]
+
+say numbers
+
+numbers[1] = 99
+
+say numbers
+say numbers[1]

@@ -1,0 +1,6 @@
+names = ["Velto", "Python", "Code"]
+
+say names
+say names[0]
+say names[1]
+say names[2]

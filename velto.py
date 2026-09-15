@@ -1,11 +1,10 @@
 import sys
 import re
 
-VERSION = "0.6.0"
 
-
-class VeltoError(Exception):
-    pass
+# ==============================
+# Velto 0.7.0
+# ==============================
 
 
 class ReturnValue(Exception):
@@ -13,318 +12,322 @@ class ReturnValue(Exception):
         self.value = value
 
 
-def calculate(expression, variables):
-    expression = expression.strip()
+# ------------------------------
+# Argument splitter
+# ------------------------------
 
-    expression = re.sub(r'\btrue\b', 'True', expression)
-    expression = re.sub(r'\bfalse\b', 'False', expression)
-
-    try:
-        return eval(
-            expression,
-            {"__builtins__": {}},
-            variables
-        )
-    except NameError:
-        raise VeltoError(
-            f"Unknown variable in: {expression}"
-        )
-    except Exception:
-        raise VeltoError(
-            f"Invalid expression: {expression}"
-        )
-
-
-def get_value(text, variables, functions):
-    text = text.strip()
-
-    if (
-        len(text) >= 2
-        and text[0] == '"'
-        and text[-1] == '"'
-    ):
-        return text[1:-1]
-
-    match = re.fullmatch(
-        r'([a-zA-Z_][a-zA-Z0-9_]*)\((.*)\)',
-        text
-    )
-
-    if match:
-        name = match.group(1)
-        argument_text = match.group(2)
-
-        arguments = parse_arguments(
-            argument_text,
-            variables,
-            functions
-        )
-
-        return execute_function(
-            name,
-            arguments,
-            functions,
-            variables
-        )
-
-    return calculate(
-        text,
-        variables
-    )
-
-
-def parse_arguments(
-    text,
-    variables,
-    functions
-):
-    if not text.strip():
-        return []
-
-    parts = []
+def split_arguments(text):
+    args = []
     current = ""
-    inside_string = False
+    depth = 0
+    quote = None
 
     for char in text:
+        if quote:
+            current += char
+            if char == quote:
+                quote = None
+            continue
 
-        if char == '"':
-            inside_string = not inside_string
+        if char in ('"', "'"):
+            quote = char
+            current += char
 
-        if char == "," and not inside_string:
-            parts.append(current.strip())
+        elif char in "([{":
+            depth += 1
+            current += char
+
+        elif char in ")]}":
+            depth -= 1
+            current += char
+
+        elif char == "," and depth == 0:
+            args.append(current.strip())
             current = ""
+
         else:
             current += char
 
     if current.strip():
-        parts.append(current.strip())
+        args.append(current.strip())
 
-    return [
-        get_value(
-            part,
-            variables,
-            functions
-        )
-        for part in parts
-    ]
+    return args
 
 
-def execute_function(
-    name,
-    arguments,
-    functions,
-    variables
-):
-    if name not in functions:
-        raise VeltoError(
-            f"Unknown function: {name}"
-        )
+# ------------------------------
+# Replace Velto values
+# ------------------------------
 
-    parameters, body = functions[name]
+def prepare_expression(expr):
+    expr = re.sub(r"\btrue\b", "True", expr)
+    expr = re.sub(r"\bfalse\b", "False", expr)
+    return expr
 
-    if len(arguments) != len(parameters):
-        raise VeltoError(
-            f"Function '{name}' expects "
-            f"{len(parameters)} argument(s), "
-            f"but got {len(arguments)}"
-        )
 
-    local_variables = variables.copy()
+# ------------------------------
+# Safe calculation
+# ------------------------------
 
-    for parameter, argument in zip(
-        parameters,
-        arguments
-    ):
-        local_variables[parameter] = argument
+def calculate(expr, variables, functions):
+    expr = expr.strip()
+
+    # Direct function call
+    match = re.fullmatch(r"([A-Za-z_]\w*)\((.*)\)", expr)
+    if match:
+        name = match.group(1)
+        args_text = match.group(2)
+
+        if name in functions:
+            args = []
+
+            if args_text.strip():
+                for arg in split_arguments(args_text):
+                    args.append(get_value(arg, variables, functions))
+
+            return execute_function(name, args, functions)
+
+    # Replace variables/list indexes with safe Python values.
+    env = {}
+
+    for name, value in variables.items():
+        env[name] = value
+
+    prepared = prepare_expression(expr)
 
     try:
+        return eval(
+            prepared,
+            {"__builtins__": {}},
+            env
+        )
 
-        i = 0
+    except NameError as e:
+        raise ValueError(f"Unknown value: {e}")
 
-        while i < len(body):
+    except IndexError:
+        raise ValueError("List index out of range")
 
-            line = body[i]
+    except TypeError as e:
+        raise ValueError(str(e))
 
-            if line.startswith("if ") and line.endswith(":"):
+    except SyntaxError:
+        raise ValueError(f"Invalid expression: {expr}")
 
-                condition = line[3:-1].strip()
+    except Exception as e:
+        raise ValueError(str(e))
 
-                condition_value = get_value(
-                    condition,
-                    local_variables,
-                    functions
-                )
 
-                i += 1
+# ------------------------------
+# Get value
+# ------------------------------
 
-                if i < len(body):
-                    next_line = body[i]
+def get_value(text, variables, functions):
+    text = text.strip()
 
-                if condition_value:
-                    if i < len(body):
-                        execute_line(
-                            body[i],
-                            local_variables,
-                            functions
-                        )
+    if not text:
+        return ""
 
-                i += 1
-                continue
+    # Function call
+    match = re.fullmatch(r"([A-Za-z_]\w*)\((.*)\)", text)
 
-            execute_line(
-                line,
-                local_variables,
-                functions
-            )
+    if match:
+        name = match.group(1)
+        args_text = match.group(2)
 
-            i += 1
+        if name in functions:
+            args = []
 
-    except ReturnValue as result:
-        return result.value
+            if args_text.strip():
+                for arg in split_arguments(args_text):
+                    args.append(get_value(arg, variables, functions))
+
+            return execute_function(name, args, functions)
+
+    # Variable / list indexing / arithmetic
+    try:
+        return calculate(text, variables, functions)
+    except ValueError:
+        pass
+
+    # String
+    if (
+        len(text) >= 2
+        and text[0] in ('"', "'")
+        and text[-1] == text[0]
+    ):
+        return text[1:-1]
+
+    # Boolean
+    if text == "true":
+        return True
+
+    if text == "false":
+        return False
+
+    # Integer / float
+    try:
+        if "." in text:
+            return float(text)
+        return int(text)
+    except ValueError:
+        pass
+
+    # Variable
+    if text in variables:
+        return variables[text]
+
+    raise ValueError(f"Unknown value: {text}")
+
+
+# ------------------------------
+# Format output
+# ------------------------------
+
+def format_value(value):
+    if isinstance(value, bool):
+        return "true" if value else "false"
+
+    if isinstance(value, list):
+        return "[" + ", ".join(format_value(x) for x in value) + "]"
+
+    if isinstance(value, str):
+        return f'"{value}"'
+
+    return str(value)
+
+
+# ------------------------------
+# Execute function
+# ------------------------------
+
+def execute_function(name, args, functions):
+    if name not in functions:
+        raise ValueError(f"Unknown function: {name}")
+
+    params, body = functions[name]
+
+    if len(args) != len(params):
+        raise ValueError(
+            f"Function '{name}' expects {len(params)} argument(s), "
+            f"got {len(args)}"
+        )
+
+    local_variables = {}
+
+    for param, value in zip(params, args):
+        local_variables[param] = value
+
+    try:
+        execute_lines(body, local_variables, functions)
+
+    except ReturnValue as ret:
+        return ret.value
 
     return None
 
 
-def execute_line(
-    line,
-    variables,
-    functions
-):
-    line = line.strip()
+# ------------------------------
+# Collect block
+# ------------------------------
 
-    if not line or line.startswith("#"):
-        return None
-
-    if line == "return":
-        raise ReturnValue(None)
-
-    if line.startswith("return "):
-
-        value = get_value(
-            line[7:],
-            variables,
-            functions
-        )
-
-        raise ReturnValue(value)
-
-    if line.startswith("say "):
-
-        value = get_value(
-            line[4:],
-            variables,
-            functions
-        )
-
-        print(value)
-
-        return None
-
-    match = re.fullmatch(
-        r'([a-zA-Z_][a-zA-Z0-9_]*)\((.*)\)',
-        line
-    )
-
-    if match:
-
-        name = match.group(1)
-        argument_text = match.group(2)
-
-        arguments = parse_arguments(
-            argument_text,
-            variables,
-            functions
-        )
-
-        return execute_function(
-            name,
-            arguments,
-            functions,
-            variables
-        )
-
-    if line.startswith("if ") and line.endswith(":"):
-
-        condition = line[3:-1].strip()
-
-        return ("IF", condition)
-
-    if line.startswith("while ") and line.endswith(":"):
-
-        condition = line[6:-1].strip()
-
-        return ("WHILE", condition)
-
-    if "=" in line:
-
-        name, expression = line.split(
-            "=",
-            1
-        )
-
-        name = name.strip()
-        expression = expression.strip()
-
-        if not re.match(
-            r'^[a-zA-Z_][a-zA-Z0-9_]*$',
-            name
-        ):
-            raise VeltoError(
-                f"Invalid variable name: {name}"
-            )
-
-        variables[name] = get_value(
-            expression,
-            variables,
-            functions
-        )
-
-        return None
-
-    raise VeltoError(
-        f"Unknown command: {line}"
-    )
-
-
-def collect_block(lines, start):
-
+def collect_block(lines, start_index):
     body = []
+    i = start_index
 
-    i = start
+    while i < len(lines):
+        line = lines[i]
 
-    while (
-        i < len(lines)
-        and lines[i].startswith("    ")
-    ):
-        body.append(
-            lines[i][4:]
-        )
-        i += 1
+        if not line.strip():
+            body.append(line)
+            i += 1
+            continue
+
+        if line.startswith("    "):
+            body.append(line[4:])
+            i += 1
+        else:
+            break
 
     return body, i
 
 
-def run_block(
-    lines,
-    variables,
-    functions
-):
+# ------------------------------
+# Execute lines
+# ------------------------------
+
+def execute_lines(lines, variables, functions):
     i = 0
+    loop_counter = 0
+    max_loops = 100000
 
     while i < len(lines):
+        raw_line = lines[i]
+        line = raw_line.strip()
 
-        original_line = lines[i]
-        line = original_line.strip()
-
-        if not line or line.startswith("#"):
+        # Empty line
+        if not line:
             i += 1
             continue
 
-        if (
-            line.startswith("if ")
-            and line.endswith(":")
-        ):
+        # Comment
+        if line.startswith("#"):
+            i += 1
+            continue
 
+        # --------------------------
+        # Function
+        # --------------------------
+
+        if line.startswith("function "):
+            match = re.match(
+                r"function\s+([A-Za-z_]\w*)\s*\((.*?)\)\s*:",
+                line
+            )
+
+            if not match:
+                raise ValueError("Invalid function declaration")
+
+            name = match.group(1)
+            params_text = match.group(2)
+
+            if params_text.strip():
+                params = [
+                    p.strip()
+                    for p in split_arguments(params_text)
+                ]
+            else:
+                params = []
+
+            body, next_index = collect_block(lines, i + 1)
+
+            functions[name] = (params, body)
+
+            i = next_index
+            continue
+
+        # --------------------------
+        # Return
+        # --------------------------
+
+        if line.startswith("return"):
+            value_text = line[6:].strip()
+
+            if value_text:
+                value = get_value(
+                    value_text,
+                    variables,
+                    functions
+                )
+            else:
+                value = None
+
+            raise ReturnValue(value)
+
+        # --------------------------
+        # If
+        # --------------------------
+
+        if line.startswith("if ") and line.endswith(":"):
             condition = line[3:-1].strip()
 
             condition_value = get_value(
@@ -333,373 +336,251 @@ def run_block(
                 functions
             )
 
-            i += 1
+            true_body, next_index = collect_block(lines, i + 1)
 
-            if i < len(lines):
-                true_line = lines[i]
-
-            if condition_value:
-
-                if i < len(lines):
-                    execute_line(
-                        true_line,
-                        variables,
-                        functions
-                    )
-
-            i += 1
+            false_body = []
+            final_index = next_index
 
             if (
-                i < len(lines)
-                and lines[i].strip() == "else:"
+                next_index < len(lines)
+                and lines[next_index].strip() == "else:"
             ):
+                false_body, final_index = collect_block(
+                    lines,
+                    next_index + 1
+                )
 
-                i += 1
+            if condition_value:
+                execute_lines(
+                    true_body,
+                    variables,
+                    functions
+                )
+            else:
+                execute_lines(
+                    false_body,
+                    variables,
+                    functions
+                )
 
-                if i < len(lines):
-                    else_line = lines[i]
-
-                    if not condition_value:
-                        execute_line(
-                            else_line,
-                            variables,
-                            functions
-                        )
-
-                i += 1
-
+            i = final_index
             continue
 
-        if (
-            line.startswith("while ")
-            and line.endswith(":")
-        ):
+        # --------------------------
+        # While
+        # --------------------------
 
+        if line.startswith("while ") and line.endswith(":"):
             condition = line[6:-1].strip()
 
-            i += 1
-
-            body = []
-
-            while (
-                i < len(lines)
-                and lines[i].startswith("    ")
-            ):
-                body.append(
-                    lines[i][4:]
-                )
-                i += 1
+            body, next_index = collect_block(
+                lines,
+                i + 1
+            )
 
             while get_value(
                 condition,
                 variables,
                 functions
             ):
+                loop_counter += 1
 
-                run_block(
+                if loop_counter > max_loops:
+                    raise ValueError(
+                        "Loop stopped: too many iterations"
+                    )
+
+                execute_lines(
                     body,
                     variables,
                     functions
                 )
 
+            i = next_index
             continue
 
-        try:
+        # --------------------------
+        # say
+        # --------------------------
 
-            execute_line(
-                line,
+        if line.startswith("say "):
+            expression = line[4:].strip()
+
+            value = get_value(
+                expression,
                 variables,
                 functions
             )
 
-        except ReturnValue:
+            print(format_value(value))
 
-            raise
+            i += 1
+            continue
 
-        except VeltoError as error:
+        # --------------------------
+        # List item assignment
+        # --------------------------
 
-            print()
-            print(
-                f"Velto Error on line "
-                f"{i + 1}:"
-            )
+        match = re.match(
+            r"^([A-Za-z_]\w*)\[(.+)\]\s*=\s*(.+)$",
+            line
+        )
 
-            print(
-                f"  {original_line}"
-            )
+        if match:
+            variable_name = match.group(1)
+            index_expression = match.group(2)
+            value_expression = match.group(3)
 
-            print(
-                f"  {error}"
-            )
-
-        i += 1
-
-
-def run(code):
-
-    variables = {}
-    functions = {}
-
-    lines = code.splitlines()
-
-    i = 0
-
-    while i < len(lines):
-
-        line = lines[i].strip()
-
-        if (
-            line.startswith("function ")
-            and line.endswith(":")
-        ):
-
-            header = line[9:-1].strip()
-
-            match = re.fullmatch(
-                r'([a-zA-Z_][a-zA-Z0-9_]*)\((.*?)\)',
-                header
-            )
-
-            if not match:
-
-                raise VeltoError(
-                    f"Invalid function definition: {line}"
+            if variable_name not in variables:
+                raise ValueError(
+                    f"Unknown variable: {variable_name}"
                 )
 
+            collection = variables[variable_name]
+
+            index = get_value(
+                index_expression,
+                variables,
+                functions
+            )
+
+            value = get_value(
+                value_expression,
+                variables,
+                functions
+            )
+
+            try:
+                collection[index] = value
+            except IndexError:
+                raise ValueError(
+                    "List index out of range"
+                )
+
+            i += 1
+            continue
+
+        # --------------------------
+        # Variable assignment
+        # --------------------------
+
+        match = re.match(
+            r"^([A-Za-z_]\w*)\s*=\s*(.+)$",
+            line
+        )
+
+        if match:
+            variable_name = match.group(1)
+            expression = match.group(2).strip()
+
+            value = get_value(
+                expression,
+                variables,
+                functions
+            )
+
+            variables[variable_name] = value
+
+            i += 1
+            continue
+
+        # --------------------------
+        # Standalone function call
+        # --------------------------
+
+        match = re.fullmatch(
+            r"([A-Za-z_]\w*)\((.*)\)",
+            line
+        )
+
+        if match:
             name = match.group(1)
+            args_text = match.group(2)
 
-            parameter_text = match.group(2).strip()
-
-            if parameter_text:
-
-                parameters = [
-                    p.strip()
-                    for p in parameter_text.split(",")
-                ]
-
-            else:
-
-                parameters = []
-
-            for parameter in parameters:
-
-                if not re.fullmatch(
-                    r'[a-zA-Z_][a-zA-Z0-9_]*',
-                    parameter
-                ):
-
-                    raise VeltoError(
-                        f"Invalid parameter: {parameter}"
-                    )
-
-            i += 1
-
-            body = []
-
-            while (
-                i < len(lines)
-                and lines[i].startswith("    ")
-            ):
-
-                body.append(
-                    lines[i][4:]
+            if name not in functions:
+                raise ValueError(
+                    f"Unknown function: {name}"
                 )
 
-                i += 1
+            args = []
 
-            functions[name] = (
-                parameters,
-                body
-            )
-
-            continue
-
-        i += 1
-
-    i = 0
-
-    while i < len(lines):
-
-        line = lines[i].strip()
-
-        if not line or line.startswith("#"):
-
-            i += 1
-            continue
-
-        if (
-            line.startswith("function ")
-            and line.endswith(":")
-        ):
-
-            i += 1
-
-            while (
-                i < len(lines)
-                and lines[i].startswith("    ")
-            ):
-                i += 1
-
-            continue
-
-        try:
-
-            if (
-                line.startswith("if ")
-                and line.endswith(":")
-            ):
-
-                condition = line[3:-1].strip()
-
-                result = get_value(
-                    condition,
-                    variables,
-                    functions
-                )
-
-                i += 1
-
-                if i < len(lines):
-
-                    true_line = lines[i]
-
-                    if result:
-
-                        execute_line(
-                            true_line,
+            if args_text.strip():
+                for arg in split_arguments(args_text):
+                    args.append(
+                        get_value(
+                            arg,
                             variables,
                             functions
                         )
-
-                i += 1
-
-                if (
-                    i < len(lines)
-                    and lines[i].strip() == "else:"
-                ):
-
-                    i += 1
-
-                    if i < len(lines):
-
-                        else_line = lines[i]
-
-                        if not result:
-
-                            execute_line(
-                                else_line,
-                                variables,
-                                functions
-                            )
-
-                    i += 1
-
-                continue
-
-            if (
-                line.startswith("while ")
-                and line.endswith(":")
-            ):
-
-                condition = line[6:-1].strip()
-
-                i += 1
-
-                body = []
-
-                while (
-                    i < len(lines)
-                    and lines[i].startswith("    ")
-                ):
-
-                    body.append(
-                        lines[i][4:]
                     )
 
-                    i += 1
-
-                while get_value(
-                    condition,
-                    variables,
-                    functions
-                ):
-
-                    run_block(
-                        body,
-                        variables,
-                        functions
-                    )
-
-                continue
-
-            execute_line(
-                line,
-                variables,
+            execute_function(
+                name,
+                args,
                 functions
             )
 
-        except ReturnValue:
+            i += 1
+            continue
 
-            print(
-                "Velto Error: "
-                "return can only be used inside a function"
-            )
-
-        except VeltoError as error:
-
-            print()
-            print(
-                f"Velto Error on line "
-                f"{i + 1}:"
-            )
-
-            print(
-                f"  {lines[i]}"
-            )
-
-            print(
-                f"  {error}"
-            )
-
-        i += 1
-
-
-def main():
-
-    if len(sys.argv) != 2:
-
-        print(
-            f"Velto {VERSION}"
+        raise ValueError(
+            f"Unknown statement: {line}"
         )
 
-        print(
-            "Usage: python velto.py <file.vlt>"
-        )
 
-        return
+# ------------------------------
+# Run file
+# ------------------------------
 
-    filename = sys.argv[1]
-
+def run_file(filename):
     try:
-
         with open(
             filename,
             "r",
             encoding="utf-8"
         ) as file:
+            lines = file.readlines()
 
-            code = file.read()
+        variables = {}
+        functions = {}
 
-        run(code)
-
-    except FileNotFoundError:
-
-        print(
-            f"Velto Error: "
-            f"File not found: {filename}"
+        execute_lines(
+            lines,
+            variables,
+            functions
         )
+
+    except ReturnValue:
+        print("Velto Error: return outside function")
+
+    except Exception as e:
+        line_number = getattr(
+            e,
+            "line_number",
+            None
+        )
+
+        print(f"Velto Error: {e}")
+
+
+# ------------------------------
+# CLI
+# ------------------------------
+
+def main():
+    if len(sys.argv) != 2:
+        print("Velto 0.7.0")
+        print("Usage: python velto.py <file.vlt>")
+        return
+
+    filename = sys.argv[1]
+
+    if not filename.endswith(".vlt"):
+        print("Velto Error: file must end with .vlt")
+        return
+
+    run_file(filename)
 
 
 if __name__ == "__main__":
-    main()	
-
+    main()
