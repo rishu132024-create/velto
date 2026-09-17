@@ -1,0 +1,6 @@
+import math
+
+function calculate(x):
+    return math.square(x) + math.add(x, 10)
+
+say calculate(5)
