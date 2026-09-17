@@ -1,0 +1,10 @@
+name = "Velto"
+version = 0.32
+
+say name
+say version
+
+numbers = (10, 20, 30)
+
+for number in numbers:
+    say number
