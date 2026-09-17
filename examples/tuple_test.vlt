@@ -1,0 +1,11 @@
+numbers = (10, 20, 30)
+
+say numbers[0]
+say numbers[1]
+say numbers[2]
+
+data = ("Velto", 2026, "Programming")
+
+say data[0]
+say data[1]
+say data[2]

@@ -1,0 +1,8 @@
+user = {
+    "name": "Velto",
+    "info": ("Programming", 2026)
+}
+
+say user["name"]
+say user["info"][0]
+say user["info"][1]

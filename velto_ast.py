@@ -9,6 +9,7 @@ from velto_parser import (
     IdentifierNode,
     ListNode,
     DictionaryNode,
+    TupleNode,
     IndexNode,
     BinaryOpNode,
     AssignmentNode,
@@ -147,6 +148,12 @@ class ASTInterpreter:
                 self.evaluate(element)
                 for element in node.elements
             ]
+
+        if isinstance(node, TupleNode):
+            return tuple(
+                self.evaluate(element)
+                for element in node.elements
+            )
 
         if isinstance(node, DictionaryNode):
             result = {}

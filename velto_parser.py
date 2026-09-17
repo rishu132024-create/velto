@@ -48,6 +48,12 @@ class DictionaryNode:
         self.line = line
 
 
+class TupleNode:
+    def __init__(self, elements, line=None):
+        self.elements = elements
+        self.line = line
+
+
 class IndexNode:
     def __init__(self, value, index, line=None):
         self.value = value
@@ -804,16 +810,7 @@ class Parser:
             token.type == "DELIMITER"
             and token.value == "("
         ):
-            self.advance()
-
-            expression = self.parse_expression()
-
-            self.expect(
-                "DELIMITER",
-                ")"
-            )
-
-            return expression
+            return self.parse_parenthesized()
 
         if (
             token.type == "DELIMITER"
@@ -831,6 +828,74 @@ class Parser:
             "Invalid expression",
             token.line
         )
+
+    def parse_parenthesized(self):
+        token = self.expect(
+            "DELIMITER",
+            "("
+        )
+
+        self.skip_newlines()
+
+        if self.match(
+            "DELIMITER",
+            ")"
+        ):
+            return TupleNode(
+                [],
+            )
+
+        first = self.parse_expression()
+
+        self.skip_newlines()
+
+        if not self.match(
+            "DELIMITER",
+            ","
+        ):
+            self.expect(
+                "DELIMITER",
+                ")"
+            )
+
+            return first
+
+        elements = [first]
+
+        self.skip_newlines()
+
+        while True:
+            if self.match(
+                "DELIMITER",
+                ")"
+            ):
+                break
+
+            elements.append(
+                self.parse_expression()
+            )
+
+            self.skip_newlines()
+
+            if self.match(
+                "DELIMITER",
+                ")"
+            ):
+                break
+
+            self.expect(
+                "DELIMITER",
+                ","
+            )
+
+            self.skip_newlines()
+
+        return TupleNode(
+            elements,
+        )
+
+    def parse_tuple(self):
+        return self.parse_parenthesized()
 
     def parse_list(self):
         token = self.expect(
