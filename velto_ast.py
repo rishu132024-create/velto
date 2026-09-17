@@ -8,6 +8,7 @@ from velto_parser import (
     NoneNode,
     IdentifierNode,
     ListNode,
+    DictionaryNode,
     IndexNode,
     BinaryOpNode,
     AssignmentNode,
@@ -96,22 +97,7 @@ class ASTInterpreter:
 
     def evaluate(self, node):
         if isinstance(node, NumberNode):
-            value = node.value
-
-            if isinstance(value, str):
-                try:
-                    if "." in value:
-                        return float(value)
-
-                    return int(value)
-
-                except ValueError:
-                    self.error(
-                        f"Invalid number: {value}",
-                        node
-                    )
-
-            return value
+            return node.value
 
         if isinstance(node, StringNode):
             return node.value
@@ -127,7 +113,9 @@ class ASTInterpreter:
                 parts = node.name.split(".")
 
                 module_name = parts[0]
-                member_name = ".".join(parts[1:])
+                member_name = ".".join(
+                    parts[1:]
+                )
 
                 if module_name in self.modules:
                     module = self.modules[
@@ -160,6 +148,29 @@ class ASTInterpreter:
                 for element in node.elements
             ]
 
+        if isinstance(node, DictionaryNode):
+            result = {}
+
+            for key_node, value_node in node.pairs:
+                key = self.evaluate(
+                    key_node
+                )
+
+                value = self.evaluate(
+                    value_node
+                )
+
+                try:
+                    result[key] = value
+
+                except TypeError:
+                    self.error(
+                        "Dictionary key must be hashable",
+                        key_node
+                    )
+
+            return result
+
         if isinstance(node, IndexNode):
             value = self.evaluate(
                 node.value
@@ -172,10 +183,15 @@ class ASTInterpreter:
             try:
                 return value[index]
 
+            except KeyError:
+                self.error(
+                    f"Key not found: {index}",
+                    node
+                )
+
             except (
                 IndexError,
-                TypeError,
-                KeyError
+                TypeError
             ):
                 self.error(
                     f"Invalid index: {index}",
@@ -183,10 +199,14 @@ class ASTInterpreter:
                 )
 
         if isinstance(node, BinaryOpNode):
-            return self.evaluate_binary(node)
+            return self.evaluate_binary(
+                node
+            )
 
         if isinstance(node, CallNode):
-            return self.call_function(node)
+            return self.call_function(
+                node
+            )
 
         self.error(
             f"Unknown expression node: "
@@ -261,7 +281,10 @@ class ASTInterpreter:
             return
 
         if isinstance(node, ImportNode):
-            self.import_module(node)
+            self.import_module(
+                node
+            )
+
             return
 
         if isinstance(node, AssignmentNode):
@@ -288,9 +311,12 @@ class ASTInterpreter:
                 node.value
             )
 
-            if not isinstance(target, list):
+            if not isinstance(
+                target,
+                (list, dict)
+            ):
                 self.error(
-                    "Index assignment requires a list",
+                    "Index assignment requires a list or dictionary",
                     node
                 )
 
@@ -299,6 +325,7 @@ class ASTInterpreter:
 
             except (
                 IndexError,
+                KeyError,
                 TypeError
             ):
                 self.error(
@@ -463,6 +490,7 @@ class ASTInterpreter:
             parts = node.name.split(".")
 
             module_name = parts[0]
+
             function_name = ".".join(
                 parts[1:]
             )
@@ -473,12 +501,8 @@ class ASTInterpreter:
                     node
                 )
 
-            module = self.modules[
-                module_name
-            ]
-
             return self.call_module_function(
-                module,
+                self.modules[module_name],
                 function_name,
                 node,
                 arguments
@@ -520,11 +544,11 @@ class ASTInterpreter:
         old_variables = self.variables
         old_functions = self.functions
 
-        local_variables = dict(
+        self.variables = dict(
             function.closure
         )
 
-        local_functions = dict(
+        self.functions = dict(
             self.functions
         )
 
@@ -532,12 +556,9 @@ class ASTInterpreter:
             function.parameters,
             arguments
         ):
-            local_variables[
+            self.variables[
                 parameter
             ] = argument
-
-        self.variables = local_variables
-        self.functions = local_functions
 
         try:
             self.execute_block(
@@ -587,11 +608,11 @@ class ASTInterpreter:
         old_variables = self.variables
         old_functions = self.functions
 
-        local_variables = dict(
+        self.variables = dict(
             module.variables
         )
 
-        local_functions = dict(
+        self.functions = dict(
             module.functions
         )
 
@@ -599,12 +620,9 @@ class ASTInterpreter:
             function.parameters,
             arguments
         ):
-            local_variables[
+            self.variables[
                 parameter
             ] = argument
-
-        self.variables = local_variables
-        self.functions = local_functions
 
         try:
             self.execute_block(

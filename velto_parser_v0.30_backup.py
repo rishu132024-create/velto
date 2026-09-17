@@ -2,8 +2,9 @@ from velto_lexer import tokenize
 
 
 class Program:
-    def __init__(self, statements):
+    def __init__(self, statements, line=None):
         self.statements = statements
+        self.line = line
 
 
 class NumberNode:
@@ -26,7 +27,6 @@ class BooleanNode:
 
 class NoneNode:
     def __init__(self, line=None):
-        self.value = None
         self.line = line
 
 
@@ -71,19 +71,16 @@ class AssignmentNode:
 
 
 class IndexAssignmentNode:
-    def __init__(self, value, index, expression, line=None):
-        self.value = value
+    def __init__(self, target, index, value, line=None):
+        self.target = target
         self.index = index
-        self.expression = expression
-        self.target = value
-        self.value_expression = value
+        self.value = value
         self.line = line
 
 
 class SayNode:
-    def __init__(self, expression, line=None):
-        self.value = expression
-        self.expression = expression
+    def __init__(self, value, line=None):
+        self.value = value
         self.line = line
 
 
@@ -94,7 +91,13 @@ class ExpressionStatementNode:
 
 
 class IfNode:
-    def __init__(self, condition, body, else_body=None, line=None):
+    def __init__(
+        self,
+        condition,
+        body,
+        else_body=None,
+        line=None
+    ):
         self.condition = condition
         self.body = body
         self.else_body = else_body
@@ -109,7 +112,13 @@ class WhileNode:
 
 
 class ForNode:
-    def __init__(self, variable, iterable, body, line=None):
+    def __init__(
+        self,
+        variable,
+        iterable,
+        body,
+        line=None
+    ):
         self.variable = variable
         self.iterable = iterable
         self.body = body
@@ -127,7 +136,13 @@ class ContinueNode:
 
 
 class FunctionDefNode:
-    def __init__(self, name, parameters, body, line=None):
+    def __init__(
+        self,
+        name,
+        parameters,
+        body,
+        line=None
+    ):
         self.name = name
         self.parameters = parameters
         self.body = body
@@ -135,21 +150,26 @@ class FunctionDefNode:
 
 
 class CallNode:
-    def __init__(self, name, arguments, line=None):
+    def __init__(
+        self,
+        name,
+        arguments,
+        line=None
+    ):
         self.name = name
         self.arguments = arguments
         self.line = line
 
 
 class ReturnNode:
-    def __init__(self, expression=None, line=None):
-        self.expression = expression
+    def __init__(self, value=None, line=None):
+        self.value = value
         self.line = line
 
 
 class ImportNode:
-    def __init__(self, module, line=None):
-        self.module = module
+    def __init__(self, name, line=None):
+        self.name = name
         self.line = line
 
 
@@ -168,15 +188,16 @@ class Parser:
     def current(self):
         if self.position >= len(self.tokens):
             return self.tokens[-1]
+
         return self.tokens[self.position]
 
     def peek(self, offset=1):
-        index = self.position + offset
+        position = self.position + offset
 
-        if index >= len(self.tokens):
+        if position >= len(self.tokens):
             return self.tokens[-1]
 
-        return self.tokens[index]
+        return self.tokens[position]
 
     def advance(self):
         token = self.current()
@@ -195,7 +216,7 @@ class Parser:
         if value is not None and token.value != value:
             return False
 
-        self.advance()
+        self.position += 1
         return True
 
     def expect(self, token_type, value=None):
@@ -204,24 +225,20 @@ class Parser:
         if token.type != token_type:
             raise ParserError(
                 f"Expected {token_type}, got {token.type}",
-                token.line
+                getattr(token, "line", None)
             )
 
         if value is not None and token.value != value:
             raise ParserError(
                 f"Expected '{value}', got '{token.value}'",
-                token.line
+                getattr(token, "line", None)
             )
 
-        self.advance()
+        self.position += 1
         return token
 
     def skip_newlines(self):
-        while self.current().type in {"NEWLINE"}:
-            self.advance()
-
-    def skip_dictionary_layout(self):
-        while self.current().type in {"NEWLINE", "INDENT", "DEDENT"}:
+        while self.current().type == "NEWLINE":
             self.advance()
 
     def parse(self):
@@ -230,47 +247,56 @@ class Parser:
         self.skip_newlines()
 
         while self.current().type != "EOF":
-            if self.current().type == "DEDENT":
-                self.advance()
-                continue
+            statements.append(
+                self.parse_statement()
+            )
 
-            statements.append(self.parse_statement())
             self.skip_newlines()
 
-        return Program(statements)
+        line = (
+            statements[0].line
+            if statements
+            else None
+        )
+
+        return Program(
+            statements,
+            line
+        )
 
     def parse_statement(self):
         token = self.current()
-        line = token.line
+        value = token.value
+        line = getattr(token, "line", None)
 
         if token.type == "KEYWORD":
-            if token.value == "say":
+            if value == "say":
                 return self.parse_say()
 
-            if token.value == "if":
+            if value == "if":
                 return self.parse_if()
 
-            if token.value == "while":
+            if value == "while":
                 return self.parse_while()
 
-            if token.value == "for":
+            if value == "for":
                 return self.parse_for()
 
-            if token.value == "function":
-                return self.parse_function()
-
-            if token.value == "return":
-                return self.parse_return()
-
-            if token.value == "break":
+            if value == "break":
                 self.advance()
                 return BreakNode(line)
 
-            if token.value == "continue":
+            if value == "continue":
                 self.advance()
                 return ContinueNode(line)
 
-            if token.value == "import":
+            if value == "function":
+                return self.parse_function()
+
+            if value == "return":
+                return self.parse_return()
+
+            if value == "import":
                 return self.parse_import()
 
         if token.type == "IDENTIFIER":
@@ -290,23 +316,26 @@ class Parser:
 
             return ExpressionStatementNode(
                 expression,
-                getattr(expression, "line", line)
+                expression.line
             )
 
         raise ParserError(
-            "Invalid expression",
+            f"Invalid statement: {value}",
             line
         )
 
     def parse_import(self):
-        token = self.expect("KEYWORD", "import")
+        token = self.expect(
+            "KEYWORD",
+            "import"
+        )
 
         module = self.expect(
             "IDENTIFIER"
-        ).value
+        )
 
         return ImportNode(
-            module,
+            module.value,
             token.line
         )
 
@@ -316,20 +345,41 @@ class Parser:
             "say"
         )
 
-        expression = self.parse_expression()
+        value = self.parse_expression()
 
         return SayNode(
-            expression,
+            value,
             token.line
+        )
+
+    def parse_assignment(self):
+        name_token = self.expect(
+            "IDENTIFIER"
+        )
+
+        self.expect(
+            "OPERATOR",
+            "="
+        )
+
+        value = self.parse_expression()
+
+        return AssignmentNode(
+            name_token.value,
+            value,
+            name_token.line
         )
 
     def parse_possible_index_assignment(self):
         target = self.parse_postfix()
 
-        if not isinstance(target, IndexNode):
+        if not isinstance(
+            target,
+            IndexNode
+        ):
             raise ParserError(
                 "Invalid assignment target",
-                getattr(target, "line", self.current().line)
+                getattr(target, "line", None)
             )
 
         self.expect(
@@ -343,23 +393,7 @@ class Parser:
             target.value,
             target.index,
             value,
-            getattr(target, "line", None)
-        )
-
-    def parse_assignment(self):
-        name_token = self.expect("IDENTIFIER")
-
-        self.expect(
-            "OPERATOR",
-            "="
-        )
-
-        value = self.parse_expression()
-
-        return AssignmentNode(
-            name_token.value,
-            value,
-            name_token.line
+            target.line
         )
 
     def parse_if(self):
@@ -430,7 +464,7 @@ class Parser:
 
         variable = self.expect(
             "IDENTIFIER"
-        ).value
+        )
 
         self.expect(
             "KEYWORD",
@@ -447,7 +481,7 @@ class Parser:
         body = self.parse_block()
 
         return ForNode(
-            variable,
+            variable.value,
             iterable,
             body,
             token.line
@@ -461,7 +495,7 @@ class Parser:
 
         name = self.expect(
             "IDENTIFIER"
-        ).value
+        )
 
         self.expect(
             "DELIMITER",
@@ -470,27 +504,29 @@ class Parser:
 
         parameters = []
 
-        if not self.match(
-            "DELIMITER",
-            ")"
+        if not (
+            self.current().type == "DELIMITER"
+            and self.current().value == ")"
         ):
             while True:
-                parameters.append(
-                    self.expect(
-                        "IDENTIFIER"
-                    ).value
+                parameter = self.expect(
+                    "IDENTIFIER"
                 )
 
-                if self.match(
+                parameters.append(
+                    parameter.value
+                )
+
+                if not self.match(
                     "DELIMITER",
-                    ")"
+                    ","
                 ):
                     break
 
-                self.expect(
-                    "DELIMITER",
-                    ","
-                )
+        self.expect(
+            "DELIMITER",
+            ")"
+        )
 
         self.expect(
             "DELIMITER",
@@ -500,7 +536,7 @@ class Parser:
         body = self.parse_block()
 
         return FunctionDefNode(
-            name,
+            name.value,
             parameters,
             body,
             token.line
@@ -522,23 +558,19 @@ class Parser:
                 token.line
             )
 
-        expression = self.parse_expression()
+        value = self.parse_expression()
 
         return ReturnNode(
-            expression,
+            value,
             token.line
         )
 
     def parse_block(self):
         self.skip_newlines()
 
-        if self.current().type == "INDENT":
-            self.advance()
-        else:
-            raise ParserError(
-                "Expected indented block",
-                self.current().line
-            )
+        self.expect(
+            "INDENT"
+        )
 
         statements = []
 
@@ -554,8 +586,9 @@ class Parser:
 
             self.skip_newlines()
 
-        if self.current().type == "DEDENT":
-            self.advance()
+        self.expect(
+            "DEDENT"
+        )
 
         return statements
 
@@ -563,7 +596,7 @@ class Parser:
         return self.parse_comparison()
 
     def parse_comparison(self):
-        node = self.parse_term()
+        left = self.parse_term()
 
         while (
             self.current().type == "OPERATOR"
@@ -577,19 +610,20 @@ class Parser:
             }
         ):
             operator = self.advance()
+
             right = self.parse_term()
 
-            node = BinaryOpNode(
-                node,
+            left = BinaryOpNode(
+                left,
                 operator.value,
                 right,
                 operator.line
             )
 
-        return node
+        return left
 
     def parse_term(self):
-        node = self.parse_factor()
+        left = self.parse_factor()
 
         while (
             self.current().type == "OPERATOR"
@@ -599,19 +633,20 @@ class Parser:
             }
         ):
             operator = self.advance()
+
             right = self.parse_factor()
 
-            node = BinaryOpNode(
-                node,
+            left = BinaryOpNode(
+                left,
                 operator.value,
                 right,
                 operator.line
             )
 
-        return node
+        return left
 
     def parse_factor(self):
-        node = self.parse_unary()
+        left = self.parse_unary()
 
         while (
             self.current().type == "OPERATOR"
@@ -622,16 +657,17 @@ class Parser:
             }
         ):
             operator = self.advance()
+
             right = self.parse_unary()
 
-            node = BinaryOpNode(
-                node,
+            left = BinaryOpNode(
+                left,
                 operator.value,
                 right,
                 operator.line
             )
 
-        return node
+        return left
 
     def parse_unary(self):
         if (
@@ -640,25 +676,30 @@ class Parser:
         ):
             token = self.advance()
 
-            right = self.parse_unary()
+            value = self.parse_unary()
 
             return BinaryOpNode(
-                NumberNode(0, token.line),
+                NumberNode(
+                    0,
+                    token.line
+                ),
                 "-",
-                right,
+                value,
                 token.line
             )
 
         return self.parse_postfix()
 
     def parse_postfix(self):
-        node = self.parse_primary()
+        expression = self.parse_primary()
 
         while True:
-            if self.match(
-                "DELIMITER",
-                "["
+            if (
+                self.current().type == "DELIMITER"
+                and self.current().value == "["
             ):
+                token = self.advance()
+
                 index = self.parse_expression()
 
                 self.expect(
@@ -666,101 +707,103 @@ class Parser:
                     "]"
                 )
 
-                node = IndexNode(
-                    node,
+                expression = IndexNode(
+                    expression,
                     index,
-                    getattr(node, "line", None)
+                    token.line
                 )
 
                 continue
 
-            if self.match(
-                "DELIMITER",
-                "."
+            if (
+                self.current().type == "DELIMITER"
+                and self.current().value == "("
             ):
-                name = self.expect(
-                    "IDENTIFIER"
-                )
+                token = self.advance()
 
-                node = IndexNode(
-                    node,
-                    StringNode(
-                        name.value,
-                        name.line
-                    ),
-                    name.line
-                )
-
-                continue
-
-            if self.match(
-                "DELIMITER",
-                "("
-            ):
                 arguments = []
 
-                if not self.match(
-                    "DELIMITER",
-                    ")"
+                if not (
+                    self.current().type == "DELIMITER"
+                    and self.current().value == ")"
                 ):
                     while True:
                         arguments.append(
                             self.parse_expression()
                         )
 
-                        if self.match(
+                        if not self.match(
                             "DELIMITER",
-                            ")"
+                            ","
                         ):
                             break
 
-                        self.expect(
-                            "DELIMITER",
-                            ","
-                        )
+                self.expect(
+                    "DELIMITER",
+                    ")"
+                )
 
-                if isinstance(
-                    node,
+                if not isinstance(
+                    expression,
                     IdentifierNode
                 ):
-                    node = CallNode(
-                        node.name,
-                        arguments,
-                        node.line
+                    raise ParserError(
+                        "Only named functions can be called",
+                        token.line
                     )
-                else:
-                    node = CallNode(
-                        getattr(node, "name", ""),
-                        arguments,
-                        getattr(node, "line", None)
+
+                expression = CallNode(
+                    expression.name,
+                    arguments,
+                    token.line
+                )
+
+                continue
+
+            if (
+                self.current().type == "DELIMITER"
+                and self.current().value == "."
+            ):
+                token = self.advance()
+
+                member = self.expect(
+                    "IDENTIFIER"
+                )
+
+                if not isinstance(
+                    expression,
+                    IdentifierNode
+                ):
+                    raise ParserError(
+                        "Invalid module reference",
+                        token.line
                     )
+
+                expression = IdentifierNode(
+                    f"{expression.name}.{member.value}",
+                    token.line
+                )
 
                 continue
 
             break
 
-        return node
+        return expression
 
     def parse_primary(self):
         token = self.current()
+        line = getattr(
+            token,
+            "line",
+            None
+        )
 
         if token.type == "NUMBER":
             self.advance()
 
-            try:
-                if "." in str(token.value):
-                    value = float(token.value)
-                else:
-                    value = int(token.value)
-            except ValueError:
-                raise ParserError(
-                    f"Invalid number: {token.value}",
-                    token.line
-                )
-
             return NumberNode(
-                value,
-                token.line
+                token.value,
+                line
             )
 
         if token.type == "STRING":
@@ -768,7 +811,7 @@ class Parser:
 
             return StringNode(
                 token.value,
-                token.line
+                line
             )
 
         if token.type == "IDENTIFIER":
@@ -776,28 +819,31 @@ class Parser:
 
             return IdentifierNode(
                 token.value,
-                token.line
+                line
             )
 
         if token.type == "KEYWORD":
             if token.value == "true":
                 self.advance()
+
                 return BooleanNode(
                     True,
-                    token.line
+                    line
                 )
 
             if token.value == "false":
                 self.advance()
+
                 return BooleanNode(
                     False,
-                    token.line
+                    line
                 )
 
             if token.value == "none":
                 self.advance()
+
                 return NoneNode(
-                    token.line
+                    line
                 )
 
         if (
@@ -828,8 +874,8 @@ class Parser:
             return self.parse_dictionary()
 
         raise ParserError(
-            "Invalid expression",
-            token.line
+            f"Invalid expression: {token.value}",
+            line
         )
 
     def parse_list(self):
@@ -840,36 +886,25 @@ class Parser:
 
         elements = []
 
-        self.skip_newlines()
-
         if not (
             self.current().type == "DELIMITER"
             and self.current().value == "]"
         ):
             while True:
-                self.skip_newlines()
-
                 elements.append(
                     self.parse_expression()
                 )
 
-                self.skip_newlines()
-
-                if self.match(
+                if not self.match(
                     "DELIMITER",
-                    "]"
+                    ","
                 ):
                     break
 
-                self.expect(
-                    "DELIMITER",
-                    ","
-                )
-
-                self.skip_newlines()
-
-        else:
-            self.advance()
+        self.expect(
+            "DELIMITER",
+            "]"
+        )
 
         return ListNode(
             elements,
@@ -884,70 +919,39 @@ class Parser:
 
         pairs = []
 
-        self.skip_dictionary_layout()
-
-        if (
+        if not (
             self.current().type == "DELIMITER"
             and self.current().value == "}"
         ):
-            self.advance()
+            while True:
+                key = self.parse_expression()
 
-            return DictionaryNode(
-                pairs,
-                token.line
-            )
+                self.expect(
+                    "DELIMITER",
+                    ":"
+                )
 
-        while True:
-            self.skip_dictionary_layout()
+                value = self.parse_expression()
 
-            key = self.parse_expression()
+                pairs.append(
+                    (key, value)
+                )
 
-            self.skip_dictionary_layout()
-
-            self.expect(
-                "DELIMITER",
-                ":"
-            )
-
-            self.skip_dictionary_layout()
-
-            value = self.parse_expression()
-
-            pairs.append(
-                (key, value)
-            )
-
-            self.skip_dictionary_layout()
-
-            if self.match(
-                "DELIMITER",
-                ","
-            ):
-                self.skip_dictionary_layout()
-
-                if (
-                    self.current().type == "DELIMITER"
-                    and self.current().value == "}"
+                if not self.match(
+                    "DELIMITER",
+                    ","
                 ):
-                    self.advance()
                     break
 
-                continue
-
-            self.skip_dictionary_layout()
-
-            self.expect(
-                "DELIMITER",
-                "}"
-            )
-
-            break
+        self.expect(
+            "DELIMITER",
+            "}"
+        )
 
         return DictionaryNode(
             pairs,
             token.line
         )
-
 
 
 def parse(tokens):

@@ -75,14 +75,11 @@ class IndexAssignmentNode:
         self.value = value
         self.index = index
         self.expression = expression
-        self.target = value
-        self.value_expression = value
         self.line = line
 
 
 class SayNode:
     def __init__(self, expression, line=None):
-        self.value = expression
         self.expression = expression
         self.line = line
 
@@ -280,12 +277,6 @@ class Parser:
             ):
                 return self.parse_assignment()
 
-            if (
-                self.peek().type == "DELIMITER"
-                and self.peek().value == "["
-            ):
-                return self.parse_possible_index_assignment()
-
             expression = self.parse_expression()
 
             return ExpressionStatementNode(
@@ -321,29 +312,6 @@ class Parser:
         return SayNode(
             expression,
             token.line
-        )
-
-    def parse_possible_index_assignment(self):
-        target = self.parse_postfix()
-
-        if not isinstance(target, IndexNode):
-            raise ParserError(
-                "Invalid assignment target",
-                getattr(target, "line", self.current().line)
-            )
-
-        self.expect(
-            "OPERATOR",
-            "="
-        )
-
-        value = self.parse_expression()
-
-        return IndexAssignmentNode(
-            target.value,
-            target.index,
-            value,
-            getattr(target, "line", None)
         )
 
     def parse_assignment(self):

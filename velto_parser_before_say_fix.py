@@ -75,14 +75,11 @@ class IndexAssignmentNode:
         self.value = value
         self.index = index
         self.expression = expression
-        self.target = value
-        self.value_expression = value
         self.line = line
 
 
 class SayNode:
     def __init__(self, expression, line=None):
-        self.value = expression
         self.expression = expression
         self.line = line
 

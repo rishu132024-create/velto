@@ -75,8 +75,6 @@ class IndexAssignmentNode:
         self.value = value
         self.index = index
         self.expression = expression
-        self.target = value
-        self.value_expression = value
         self.line = line
 
 

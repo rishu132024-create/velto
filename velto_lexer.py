@@ -52,6 +52,8 @@ class Lexer:
         ")",
         "[",
         "]",
+        "{",
+        "}",
         ":",
         ",",
         "."
@@ -103,6 +105,11 @@ class Lexer:
                 if dot_count >= 1:
                     break
 
+                next_char = self.peek_char()
+
+                if next_char is None or not next_char.isdigit():
+                    break
+
                 dot_count += 1
                 self.advance()
                 continue
@@ -113,34 +120,14 @@ class Lexer:
             start:self.position
         ]
 
-        if value.endswith("."):
-            self.position -= 1
-
-            value = self.source[
-                start:self.position
-            ]
-
-            if value:
-                self.add_token(
-                    "NUMBER",
-                    value
-                )
-
-            self.add_token(
-                "DELIMITER",
-                "."
-            )
-
-            return
-
-        if value == "":
-            raise LexerError(
-                f"Invalid number at line {self.line}"
-            )
+        if "." in value:
+            number = float(value)
+        else:
+            number = int(value)
 
         self.add_token(
             "NUMBER",
-            value
+            number
         )
 
     def read_identifier(self):

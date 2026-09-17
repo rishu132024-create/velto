@@ -1,0 +1,13 @@
+user = {
+    "name": "Velto",
+    "language": "Programming",
+    "version": "0.30"
+}
+
+say user["name"]
+say user["language"]
+say user["version"]
+
+user["name"] = "Velto Language"
+
+say user["name"]

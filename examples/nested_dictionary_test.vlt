@@ -1,0 +1,13 @@
+user = {
+    "profile": {
+        "name": "Velto",
+        "type": "Language"
+    }
+}
+
+say user["profile"]["name"]
+say user["profile"]["type"]
+
+user["profile"]["name"] = "Velto Programming Language"
+
+say user["profile"]["name"]
