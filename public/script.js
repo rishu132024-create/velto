@@ -6,7 +6,7 @@ run.addEventListener("click", async () => {
     output.textContent = "Running...";
 
     try {
-        const response = await fetch("/api/run", {
+        const response = await fetch("/api", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
