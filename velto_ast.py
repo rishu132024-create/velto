@@ -2,9 +2,9 @@ from velto_parser import (
     Program,
     NumberNode,
     StringNode,
-    IdentifierNode,
     BooleanNode,
     NoneNode,
+    IdentifierNode,
     ListNode,
     IndexNode,
     BinaryOpNode,
@@ -21,6 +21,8 @@ from velto_parser import (
     CallNode,
     ReturnNode
 )
+
+from velto_stdlib import BUILTINS, StdLibError
 
 
 class ASTInterpreterError(Exception):
@@ -63,10 +65,7 @@ class ASTInterpreter:
         if node is not None:
             line = getattr(node, "line", None)
 
-        raise ASTInterpreterError(
-            message,
-            line
-        )
+        raise ASTInterpreterError(message, line)
 
     def evaluate(self, node):
         if isinstance(node, NumberNode):
@@ -81,12 +80,6 @@ class ASTInterpreter:
         if isinstance(node, NoneNode):
             return None
 
-        if isinstance(node, ListNode):
-            return [
-                self.evaluate(element)
-                for element in node.elements
-            ]
-
         if isinstance(node, IdentifierNode):
             if node.name not in self.variables:
                 self.error(
@@ -95,6 +88,12 @@ class ASTInterpreter:
                 )
 
             return self.variables[node.name]
+
+        if isinstance(node, ListNode):
+            return [
+                self.evaluate(element)
+                for element in node.elements
+            ]
 
         if isinstance(node, IndexNode):
             value = self.evaluate(node.value)
@@ -303,6 +302,21 @@ class ASTInterpreter:
             self.execute(statement)
 
     def call_function(self, node):
+        arguments = [
+            self.evaluate(argument)
+            for argument in node.arguments
+        ]
+
+        if node.name in BUILTINS:
+            try:
+                return BUILTINS[node.name](arguments)
+
+            except StdLibError as error:
+                self.error(
+                    str(error),
+                    node
+                )
+
         if node.name not in self.functions:
             self.error(
                 f"Function not found: {node.name}",
@@ -311,18 +325,13 @@ class ASTInterpreter:
 
         function = self.functions[node.name]
 
-        if len(node.arguments) != len(function.parameters):
+        if len(arguments) != len(function.parameters):
             self.error(
                 f"Function {node.name} expects "
                 f"{len(function.parameters)} arguments, "
-                f"got {len(node.arguments)}",
+                f"got {len(arguments)}",
                 node
             )
-
-        arguments = [
-            self.evaluate(argument)
-            for argument in node.arguments
-        ]
 
         old_variables = self.variables
 
@@ -343,7 +352,8 @@ class ASTInterpreter:
             self.variables = old_variables
             return signal.value
 
-        self.variables = old_variables
+        finally:
+            self.variables = old_variables
 
         return None
 

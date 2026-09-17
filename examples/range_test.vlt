@@ -1,0 +1,6 @@
+for number in range(5):
+    say number
+
+say range(2, 6)
+
+say range(0, 10, 2)

@@ -1,0 +1,11 @@
+numbers = [10, 20, 30, 40]
+
+say len(numbers)
+say max(10, 50, 20)
+say min(10, 50, 20)
+
+say abs(-25)
+
+say str(123)
+say int("456")
+say float("12.5")
