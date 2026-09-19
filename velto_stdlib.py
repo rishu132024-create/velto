@@ -1,4 +1,5 @@
 import math
+import random
 
 
 class StdLibError(Exception):
@@ -12,9 +13,7 @@ def builtin_len(arguments):
     try:
         return len(arguments[0])
     except TypeError:
-        raise StdLibError(
-            "Object has no length"
-        )
+        raise StdLibError("Object has no length")
 
 
 def builtin_str(arguments):
@@ -31,9 +30,7 @@ def builtin_int(arguments):
     try:
         return int(arguments[0])
     except (ValueError, TypeError):
-        raise StdLibError(
-            "Cannot convert value to int"
-        )
+        raise StdLibError("Cannot convert value to int")
 
 
 def builtin_float(arguments):
@@ -43,9 +40,7 @@ def builtin_float(arguments):
     try:
         return float(arguments[0])
     except (ValueError, TypeError):
-        raise StdLibError(
-            "Cannot convert value to float"
-        )
+        raise StdLibError("Cannot convert value to float")
 
 
 def builtin_abs(arguments):
@@ -55,9 +50,7 @@ def builtin_abs(arguments):
     try:
         return abs(arguments[0])
     except TypeError:
-        raise StdLibError(
-            "Invalid value for abs()"
-        )
+        raise StdLibError("Invalid value for abs()")
 
 
 def builtin_min(arguments):
@@ -67,9 +60,7 @@ def builtin_min(arguments):
     try:
         return min(arguments)
     except TypeError:
-        raise StdLibError(
-            "Invalid values for min()"
-        )
+        raise StdLibError("Invalid values for min()")
 
 
 def builtin_max(arguments):
@@ -79,9 +70,7 @@ def builtin_max(arguments):
     try:
         return max(arguments)
     except TypeError:
-        raise StdLibError(
-            "Invalid values for max()"
-        )
+        raise StdLibError("Invalid values for max()")
 
 
 def builtin_range(arguments):
@@ -105,23 +94,17 @@ def builtin_sqrt(arguments):
     try:
         return math.sqrt(arguments[0])
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Invalid value for sqrt()"
-        )
+        raise StdLibError("Invalid value for sqrt()")
 
 
 def builtin_power(arguments):
     if len(arguments) != 2:
-        raise StdLibError(
-            "power() expects 2 arguments"
-        )
+        raise StdLibError("power() expects 2 arguments")
 
     try:
         return arguments[0] ** arguments[1]
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Invalid values for power()"
-        )
+        raise StdLibError("Invalid values for power()")
 
 
 def builtin_floor(arguments):
@@ -131,9 +114,7 @@ def builtin_floor(arguments):
     try:
         return math.floor(arguments[0])
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Invalid value for floor()"
-        )
+        raise StdLibError("Invalid value for floor()")
 
 
 def builtin_ceil(arguments):
@@ -143,9 +124,7 @@ def builtin_ceil(arguments):
     try:
         return math.ceil(arguments[0])
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Invalid value for ceil()"
-        )
+        raise StdLibError("Invalid value for ceil()")
 
 
 def builtin_sin(arguments):
@@ -155,9 +134,7 @@ def builtin_sin(arguments):
     try:
         return math.sin(arguments[0])
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Invalid value for sin()"
-        )
+        raise StdLibError("Invalid value for sin()")
 
 
 def builtin_cos(arguments):
@@ -167,9 +144,7 @@ def builtin_cos(arguments):
     try:
         return math.cos(arguments[0])
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Invalid value for cos()"
-        )
+        raise StdLibError("Invalid value for cos()")
 
 
 def builtin_tan(arguments):
@@ -179,9 +154,7 @@ def builtin_tan(arguments):
     try:
         return math.tan(arguments[0])
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Invalid value for tan()"
-        )
+        raise StdLibError("Invalid value for tan()")
 
 
 def builtin_round(arguments):
@@ -196,6 +169,64 @@ def builtin_round(arguments):
         raise StdLibError(
             "Invalid arguments for round()"
         )
+
+
+def builtin_random(arguments):
+    if len(arguments) != 0:
+        raise StdLibError(
+            "random() expects 0 arguments"
+        )
+
+    return random.random()
+
+
+def builtin_randint(arguments):
+    if len(arguments) != 2:
+        raise StdLibError(
+            "randint() expects 2 arguments"
+        )
+
+    try:
+        return random.randint(
+            arguments[0],
+            arguments[1]
+        )
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "Invalid arguments for randint()"
+        )
+
+
+def builtin_choice(arguments):
+    if len(arguments) != 1:
+        raise StdLibError(
+            "choice() expects 1 argument"
+        )
+
+    try:
+        return random.choice(arguments[0])
+    except (IndexError, TypeError):
+        raise StdLibError(
+            "Cannot choose from this value"
+        )
+
+
+def builtin_shuffle(arguments):
+    if len(arguments) != 1:
+        raise StdLibError(
+            "shuffle() expects 1 argument"
+        )
+
+    value = arguments[0]
+
+    if not isinstance(value, list):
+        raise StdLibError(
+            "shuffle() requires a list"
+        )
+
+    random.shuffle(value)
+
+    return value
 
 
 BUILTINS = {
@@ -214,5 +245,9 @@ BUILTINS = {
     "sin": builtin_sin,
     "cos": builtin_cos,
     "tan": builtin_tan,
-    "round": builtin_round
+    "round": builtin_round,
+    "random": builtin_random,
+    "randint": builtin_randint,
+    "choice": builtin_choice,
+    "shuffle": builtin_shuffle
 }
