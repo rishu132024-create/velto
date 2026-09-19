@@ -3,6 +3,7 @@ from velto_animation import VeltoAnimation
 from velto_collision import intersects
 from velto_collision import point_inside
 from velto_collision import distance
+from velto_sound import VeltoSound
 
 
 def sprite(image=None, name="sprite"):
@@ -34,3 +35,7 @@ def contains_point(sprite_object, x, y):
 
 def distance_between(first, second):
     return distance(first, second)
+
+
+def sound(source=None):
+    return VeltoSound(source)
