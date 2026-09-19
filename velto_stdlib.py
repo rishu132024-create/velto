@@ -4,6 +4,8 @@ import math
 import os
 import random
 import time
+import urllib.error
+import urllib.request
 
 
 class StdLibError(Exception):
@@ -366,6 +368,96 @@ def builtin_sleep(arguments):
     return True
 
 
+def builtin_http_get(arguments):
+    if len(arguments) != 1:
+        raise StdLibError(
+            "http_get() expects 1 argument"
+        )
+
+    url = arguments[0]
+
+    if not isinstance(url, str):
+        raise StdLibError(
+            "URL must be a string"
+        )
+
+    try:
+        request = urllib.request.Request(
+            url,
+            method="GET",
+            headers={
+                "User-Agent": "Velto/0.47"
+            }
+        )
+
+        with urllib.request.urlopen(
+            request,
+            timeout=10
+        ) as response:
+            return response.read().decode(
+                "utf-8",
+                errors="replace"
+            )
+
+    except (
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        TimeoutError,
+        OSError
+    ):
+        raise StdLibError(
+            "HTTP GET request failed"
+        )
+
+
+def builtin_http_post(arguments):
+    if len(arguments) != 2:
+        raise StdLibError(
+            "http_post() expects 2 arguments"
+        )
+
+    url = arguments[0]
+    data = arguments[1]
+
+    if not isinstance(url, str):
+        raise StdLibError(
+            "URL must be a string"
+        )
+
+    if not isinstance(data, str):
+        data = str(data)
+
+    try:
+        request = urllib.request.Request(
+            url,
+            data=data.encode("utf-8"),
+            method="POST",
+            headers={
+                "User-Agent": "Velto/0.47",
+                "Content-Type": "application/json"
+            }
+        )
+
+        with urllib.request.urlopen(
+            request,
+            timeout=10
+        ) as response:
+            return response.read().decode(
+                "utf-8",
+                errors="replace"
+            )
+
+    except (
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        TimeoutError,
+        OSError
+    ):
+        raise StdLibError(
+            "HTTP POST request failed"
+        )
+
+
 BUILTINS = {
     "len": builtin_len,
     "str": builtin_str,
@@ -398,5 +490,7 @@ BUILTINS = {
     "today": builtin_today,
     "timestamp": builtin_timestamp,
     "time_format": builtin_time_format,
-    "sleep": builtin_sleep
+    "sleep": builtin_sleep,
+    "http_get": builtin_http_get,
+    "http_post": builtin_http_post
 }
