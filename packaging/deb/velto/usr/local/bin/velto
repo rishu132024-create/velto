@@ -1,0 +1,2 @@
+#!/bin/sh
+exec python3 /usr/local/lib/velto/velto_cli.py "$@"

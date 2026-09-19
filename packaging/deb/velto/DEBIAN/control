@@ -1,0 +1,9 @@
+Package: velto
+Version: 0.87.2
+Section: devel
+Priority: optional
+Architecture: all
+Maintainer: Rishu132024-create
+Description: Velto programming language
+ Velto is a programming language and development environment.
+Depends: python3
