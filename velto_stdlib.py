@@ -1,3 +1,4 @@
+import json
 import math
 import random
 
@@ -9,7 +10,6 @@ class StdLibError(Exception):
 def builtin_len(arguments):
     if len(arguments) != 1:
         raise StdLibError("len() expects 1 argument")
-
     try:
         return len(arguments[0])
     except TypeError:
@@ -19,14 +19,12 @@ def builtin_len(arguments):
 def builtin_str(arguments):
     if len(arguments) != 1:
         raise StdLibError("str() expects 1 argument")
-
     return str(arguments[0])
 
 
 def builtin_int(arguments):
     if len(arguments) != 1:
         raise StdLibError("int() expects 1 argument")
-
     try:
         return int(arguments[0])
     except (ValueError, TypeError):
@@ -36,7 +34,6 @@ def builtin_int(arguments):
 def builtin_float(arguments):
     if len(arguments) != 1:
         raise StdLibError("float() expects 1 argument")
-
     try:
         return float(arguments[0])
     except (ValueError, TypeError):
@@ -46,7 +43,6 @@ def builtin_float(arguments):
 def builtin_abs(arguments):
     if len(arguments) != 1:
         raise StdLibError("abs() expects 1 argument")
-
     try:
         return abs(arguments[0])
     except TypeError:
@@ -56,7 +52,6 @@ def builtin_abs(arguments):
 def builtin_min(arguments):
     if len(arguments) == 0:
         raise StdLibError("min() expects at least 1 argument")
-
     try:
         return min(arguments)
     except TypeError:
@@ -66,7 +61,6 @@ def builtin_min(arguments):
 def builtin_max(arguments):
     if len(arguments) == 0:
         raise StdLibError("max() expects at least 1 argument")
-
     try:
         return max(arguments)
     except TypeError:
@@ -75,22 +69,16 @@ def builtin_max(arguments):
 
 def builtin_range(arguments):
     if len(arguments) < 1 or len(arguments) > 3:
-        raise StdLibError(
-            "range() expects 1 to 3 arguments"
-        )
-
+        raise StdLibError("range() expects 1 to 3 arguments")
     try:
         return list(range(*arguments))
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Invalid arguments for range()"
-        )
+        raise StdLibError("Invalid arguments for range()")
 
 
 def builtin_sqrt(arguments):
     if len(arguments) != 1:
         raise StdLibError("sqrt() expects 1 argument")
-
     try:
         return math.sqrt(arguments[0])
     except (TypeError, ValueError):
@@ -100,7 +88,6 @@ def builtin_sqrt(arguments):
 def builtin_power(arguments):
     if len(arguments) != 2:
         raise StdLibError("power() expects 2 arguments")
-
     try:
         return arguments[0] ** arguments[1]
     except (TypeError, ValueError):
@@ -110,7 +97,6 @@ def builtin_power(arguments):
 def builtin_floor(arguments):
     if len(arguments) != 1:
         raise StdLibError("floor() expects 1 argument")
-
     try:
         return math.floor(arguments[0])
     except (TypeError, ValueError):
@@ -120,7 +106,6 @@ def builtin_floor(arguments):
 def builtin_ceil(arguments):
     if len(arguments) != 1:
         raise StdLibError("ceil() expects 1 argument")
-
     try:
         return math.ceil(arguments[0])
     except (TypeError, ValueError):
@@ -130,7 +115,6 @@ def builtin_ceil(arguments):
 def builtin_sin(arguments):
     if len(arguments) != 1:
         raise StdLibError("sin() expects 1 argument")
-
     try:
         return math.sin(arguments[0])
     except (TypeError, ValueError):
@@ -140,7 +124,6 @@ def builtin_sin(arguments):
 def builtin_cos(arguments):
     if len(arguments) != 1:
         raise StdLibError("cos() expects 1 argument")
-
     try:
         return math.cos(arguments[0])
     except (TypeError, ValueError):
@@ -150,7 +133,6 @@ def builtin_cos(arguments):
 def builtin_tan(arguments):
     if len(arguments) != 1:
         raise StdLibError("tan() expects 1 argument")
-
     try:
         return math.tan(arguments[0])
     except (TypeError, ValueError):
@@ -159,74 +141,83 @@ def builtin_tan(arguments):
 
 def builtin_round(arguments):
     if len(arguments) not in (1, 2):
-        raise StdLibError(
-            "round() expects 1 or 2 arguments"
-        )
-
+        raise StdLibError("round() expects 1 or 2 arguments")
     try:
         return round(*arguments)
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Invalid arguments for round()"
-        )
+        raise StdLibError("Invalid arguments for round()")
 
 
 def builtin_random(arguments):
     if len(arguments) != 0:
-        raise StdLibError(
-            "random() expects 0 arguments"
-        )
-
+        raise StdLibError("random() expects 0 arguments")
     return random.random()
 
 
 def builtin_randint(arguments):
     if len(arguments) != 2:
-        raise StdLibError(
-            "randint() expects 2 arguments"
-        )
-
+        raise StdLibError("randint() expects 2 arguments")
     try:
-        return random.randint(
-            arguments[0],
-            arguments[1]
-        )
+        return random.randint(arguments[0], arguments[1])
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Invalid arguments for randint()"
-        )
+        raise StdLibError("Invalid arguments for randint()")
 
 
 def builtin_choice(arguments):
     if len(arguments) != 1:
-        raise StdLibError(
-            "choice() expects 1 argument"
-        )
-
+        raise StdLibError("choice() expects 1 argument")
     try:
         return random.choice(arguments[0])
     except (IndexError, TypeError):
-        raise StdLibError(
-            "Cannot choose from this value"
-        )
+        raise StdLibError("Cannot choose from this value")
 
 
 def builtin_shuffle(arguments):
     if len(arguments) != 1:
-        raise StdLibError(
-            "shuffle() expects 1 argument"
-        )
+        raise StdLibError("shuffle() expects 1 argument")
 
     value = arguments[0]
 
     if not isinstance(value, list):
-        raise StdLibError(
-            "shuffle() requires a list"
-        )
+        raise StdLibError("shuffle() requires a list")
 
     random.shuffle(value)
 
     return value
+
+
+def builtin_json_parse(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("json_parse() expects 1 argument")
+
+    if not isinstance(arguments[0], str):
+        raise StdLibError(
+            "json_parse() requires a string"
+        )
+
+    try:
+        return json.loads(arguments[0])
+    except json.JSONDecodeError:
+        raise StdLibError(
+            "Invalid JSON"
+        )
+
+
+def builtin_json_stringify(arguments):
+    if len(arguments) != 1:
+        raise StdLibError(
+            "json_stringify() expects 1 argument"
+        )
+
+    try:
+        return json.dumps(
+            arguments[0],
+            ensure_ascii=False
+        )
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "Cannot convert value to JSON"
+        )
 
 
 BUILTINS = {
@@ -249,5 +240,7 @@ BUILTINS = {
     "random": builtin_random,
     "randint": builtin_randint,
     "choice": builtin_choice,
-    "shuffle": builtin_shuffle
+    "shuffle": builtin_shuffle,
+    "json_parse": builtin_json_parse,
+    "json_stringify": builtin_json_stringify
 }
