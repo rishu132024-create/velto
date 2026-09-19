@@ -13,20 +13,14 @@ from velto_layout import Row
 from velto_layout import Column
 from velto_layout import Grid
 from velto_app import VeltoApp
+from velto_android import AndroidProject
 
 
 def sprite(image=None, name="sprite"):
     return VeltoSprite(name=name, image=image)
 
 
-def create_sprite(
-    name,
-    image=None,
-    x=0,
-    y=0,
-    width=32,
-    height=32
-):
+def create_sprite(name, image=None, x=0, y=0, width=32, height=32):
     return VeltoSprite(
         name=name,
         image=image,
@@ -46,18 +40,11 @@ def collision(first, second):
 
 
 def contains_point(sprite_object, x, y):
-    return point_inside(
-        sprite_object,
-        x,
-        y
-    )
+    return point_inside(sprite_object, x, y)
 
 
 def distance_between(first, second):
-    return distance(
-        first,
-        second
-    )
+    return distance(first, second)
 
 
 def sound(source=None):
@@ -65,49 +52,19 @@ def sound(source=None):
 
 
 def physics(x=0, y=0, mass=1.0):
-    return PhysicsBody(
-        x,
-        y,
-        mass
-    )
+    return PhysicsBody(x, y, mass)
 
 
-def button(
-    text="Button",
-    x=0,
-    y=0,
-    width=120,
-    height=40
-):
-    return VeltoButton(
-        text,
-        x,
-        y,
-        width,
-        height
-    )
+def button(text="Button", x=0, y=0, width=120, height=40):
+    return VeltoButton(text, x, y, width, height)
 
 
 def label(text="", x=0, y=0):
-    return Label(
-        text,
-        x,
-        y
-    )
+    return Label(text, x, y)
 
 
-def panel(
-    x=0,
-    y=0,
-    width=300,
-    height=200
-):
-    return Panel(
-        x,
-        y,
-        width,
-        height
-    )
+def panel(x=0, y=0, width=300, height=200):
+    return Panel(x, y, width, height)
 
 
 def text_field(
@@ -128,46 +85,15 @@ def text_field(
     )
 
 
-def row(
-    x=0,
-    y=0,
-    width=400,
-    height=100,
-    spacing=10
-):
-    return Row(
-        x,
-        y,
-        width,
-        height,
-        spacing
-    )
+def row(x=0, y=0, width=400, height=100, spacing=10):
+    return Row(x, y, width, height, spacing)
 
 
-def column(
-    x=0,
-    y=0,
-    width=400,
-    height=300,
-    spacing=10
-):
-    return Column(
-        x,
-        y,
-        width,
-        height,
-        spacing
-    )
+def column(x=0, y=0, width=400, height=300, spacing=10):
+    return Column(x, y, width, height, spacing)
 
 
-def grid(
-    columns=2,
-    x=0,
-    y=0,
-    width=400,
-    height=300,
-    spacing=10
-):
+def grid(columns=2, x=0, y=0, width=400, height=300, spacing=10):
     return Grid(
         columns,
         x,
@@ -178,13 +104,19 @@ def grid(
     )
 
 
-def app(
-    title="Velto App",
-    width=800,
-    height=600
+def app(title="Velto App", width=800, height=600):
+    return VeltoApp(title, width, height)
+
+
+def android_project(
+    name,
+    package_name,
+    version="1.0.0",
+    min_sdk=23
 ):
-    return VeltoApp(
-        title,
-        width,
-        height
+    return AndroidProject(
+        name,
+        package_name,
+        version,
+        min_sdk
     )
