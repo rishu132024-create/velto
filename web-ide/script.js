@@ -31,10 +31,30 @@ runButton.addEventListener("click", async () => {
 
         output.textContent = "Unknown response";
     } catch (error) {
-        output.textContent = "Unable to connect to Velto server.";
+        output.textContent =
+            "Unable to connect to Velto server.";
     }
 });
 
 clearButton.addEventListener("click", () => {
     output.textContent = "";
+});
+
+editor.addEventListener("keydown", event => {
+    if (event.key !== "Tab") {
+        return;
+    }
+
+    event.preventDefault();
+
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+
+    editor.value =
+        editor.value.substring(0, start)
+        + "    "
+        + editor.value.substring(end);
+
+    editor.selectionStart = start + 4;
+    editor.selectionEnd = start + 4;
 });

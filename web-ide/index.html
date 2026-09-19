@@ -2,21 +2,28 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Velto Web IDE</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <meta
+        name="theme-color"
+        content="#111111"
+    >
+    <title>Velto Playground</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
         <h1>Velto</h1>
-        <p>Web IDE</p>
+        <p>Mobile Playground</p>
     </header>
 
     <main>
-        <section class="editor-panel">
+        <section class="panel">
             <div class="panel-title">
                 <span>Code</span>
-                <button id="run">Run</button>
+                <button id="run">Run ▶</button>
             </div>
 
             <textarea id="editor">name = "Velto"
@@ -30,13 +37,13 @@ for number in numbers:
     say number</textarea>
         </section>
 
-        <section class="output-panel">
+        <section class="panel">
             <div class="panel-title">
                 <span>Output</span>
                 <button id="clear">Clear</button>
             </div>
 
-            <pre id="output">Click Run to execute your Velto program.</pre>
+            <pre id="output">Output will appear here.</pre>
         </section>
     </main>
 
