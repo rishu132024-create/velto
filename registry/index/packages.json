@@ -4,6 +4,11 @@
             "name": "hello",
             "version": "1.0.0",
             "description": "A simple Velto package"
+        },
+        {
+            "name": "myveltoapp",
+            "version": "1.0.0",
+            "description": "Velto package"
         }
     ]
 }
