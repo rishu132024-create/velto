@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import random
 
 
@@ -198,9 +199,7 @@ def builtin_json_parse(arguments):
     try:
         return json.loads(arguments[0])
     except json.JSONDecodeError:
-        raise StdLibError(
-            "Invalid JSON"
-        )
+        raise StdLibError("Invalid JSON")
 
 
 def builtin_json_stringify(arguments):
@@ -217,6 +216,125 @@ def builtin_json_stringify(arguments):
     except (TypeError, ValueError):
         raise StdLibError(
             "Cannot convert value to JSON"
+        )
+
+
+def builtin_file_write(arguments):
+    if len(arguments) != 2:
+        raise StdLibError(
+            "file_write() expects 2 arguments"
+        )
+
+    path = arguments[0]
+    content = arguments[1]
+
+    if not isinstance(path, str):
+        raise StdLibError(
+            "File path must be a string"
+        )
+
+    if not isinstance(content, str):
+        content = str(content)
+
+    try:
+        with open(path, "w", encoding="utf-8") as file:
+            file.write(content)
+    except OSError:
+        raise StdLibError(
+            "Unable to write file"
+        )
+
+    return True
+
+
+def builtin_file_read(arguments):
+    if len(arguments) != 1:
+        raise StdLibError(
+            "file_read() expects 1 argument"
+        )
+
+    path = arguments[0]
+
+    if not isinstance(path, str):
+        raise StdLibError(
+            "File path must be a string"
+        )
+
+    try:
+        with open(path, "r", encoding="utf-8") as file:
+            return file.read()
+    except OSError:
+        raise StdLibError(
+            "Unable to read file"
+        )
+
+
+def builtin_file_append(arguments):
+    if len(arguments) != 2:
+        raise StdLibError(
+            "file_append() expects 2 arguments"
+        )
+
+    path = arguments[0]
+    content = arguments[1]
+
+    if not isinstance(path, str):
+        raise StdLibError(
+            "File path must be a string"
+        )
+
+    if not isinstance(content, str):
+        content = str(content)
+
+    try:
+        with open(path, "a", encoding="utf-8") as file:
+            file.write(content)
+    except OSError:
+        raise StdLibError(
+            "Unable to append to file"
+        )
+
+    return True
+
+
+def builtin_file_exists(arguments):
+    if len(arguments) != 1:
+        raise StdLibError(
+            "file_exists() expects 1 argument"
+        )
+
+    path = arguments[0]
+
+    if not isinstance(path, str):
+        raise StdLibError(
+            "File path must be a string"
+        )
+
+    return os.path.isfile(path)
+
+
+def builtin_file_delete(arguments):
+    if len(arguments) != 1:
+        raise StdLibError(
+            "file_delete() expects 1 argument"
+        )
+
+    path = arguments[0]
+
+    if not isinstance(path, str):
+        raise StdLibError(
+            "File path must be a string"
+        )
+
+    try:
+        if os.path.isfile(path):
+            os.remove(path)
+            return True
+
+        return False
+    except OSError:
+        raise StdLibError(
+            "Unable to delete file"
         )
 
 
@@ -242,5 +360,10 @@ BUILTINS = {
     "choice": builtin_choice,
     "shuffle": builtin_shuffle,
     "json_parse": builtin_json_parse,
-    "json_stringify": builtin_json_stringify
+    "json_stringify": builtin_json_stringify,
+    "file_write": builtin_file_write,
+    "file_read": builtin_file_read,
+    "file_append": builtin_file_append,
+    "file_exists": builtin_file_exists,
+    "file_delete": builtin_file_delete
 }
