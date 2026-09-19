@@ -1,7 +1,9 @@
+import datetime
 import json
 import math
 import os
 import random
+import time
 
 
 class StdLibError(Exception):
@@ -192,9 +194,7 @@ def builtin_json_parse(arguments):
         raise StdLibError("json_parse() expects 1 argument")
 
     if not isinstance(arguments[0], str):
-        raise StdLibError(
-            "json_parse() requires a string"
-        )
+        raise StdLibError("json_parse() requires a string")
 
     try:
         return json.loads(arguments[0])
@@ -204,9 +204,7 @@ def builtin_json_parse(arguments):
 
 def builtin_json_stringify(arguments):
     if len(arguments) != 1:
-        raise StdLibError(
-            "json_stringify() expects 1 argument"
-        )
+        raise StdLibError("json_stringify() expects 1 argument")
 
     try:
         return json.dumps(
@@ -214,24 +212,18 @@ def builtin_json_stringify(arguments):
             ensure_ascii=False
         )
     except (TypeError, ValueError):
-        raise StdLibError(
-            "Cannot convert value to JSON"
-        )
+        raise StdLibError("Cannot convert value to JSON")
 
 
 def builtin_file_write(arguments):
     if len(arguments) != 2:
-        raise StdLibError(
-            "file_write() expects 2 arguments"
-        )
+        raise StdLibError("file_write() expects 2 arguments")
 
     path = arguments[0]
     content = arguments[1]
 
     if not isinstance(path, str):
-        raise StdLibError(
-            "File path must be a string"
-        )
+        raise StdLibError("File path must be a string")
 
     if not isinstance(content, str):
         content = str(content)
@@ -240,48 +232,36 @@ def builtin_file_write(arguments):
         with open(path, "w", encoding="utf-8") as file:
             file.write(content)
     except OSError:
-        raise StdLibError(
-            "Unable to write file"
-        )
+        raise StdLibError("Unable to write file")
 
     return True
 
 
 def builtin_file_read(arguments):
     if len(arguments) != 1:
-        raise StdLibError(
-            "file_read() expects 1 argument"
-        )
+        raise StdLibError("file_read() expects 1 argument")
 
     path = arguments[0]
 
     if not isinstance(path, str):
-        raise StdLibError(
-            "File path must be a string"
-        )
+        raise StdLibError("File path must be a string")
 
     try:
         with open(path, "r", encoding="utf-8") as file:
             return file.read()
     except OSError:
-        raise StdLibError(
-            "Unable to read file"
-        )
+        raise StdLibError("Unable to read file")
 
 
 def builtin_file_append(arguments):
     if len(arguments) != 2:
-        raise StdLibError(
-            "file_append() expects 2 arguments"
-        )
+        raise StdLibError("file_append() expects 2 arguments")
 
     path = arguments[0]
     content = arguments[1]
 
     if not isinstance(path, str):
-        raise StdLibError(
-            "File path must be a string"
-        )
+        raise StdLibError("File path must be a string")
 
     if not isinstance(content, str):
         content = str(content)
@@ -290,41 +270,31 @@ def builtin_file_append(arguments):
         with open(path, "a", encoding="utf-8") as file:
             file.write(content)
     except OSError:
-        raise StdLibError(
-            "Unable to append to file"
-        )
+        raise StdLibError("Unable to append to file")
 
     return True
 
 
 def builtin_file_exists(arguments):
     if len(arguments) != 1:
-        raise StdLibError(
-            "file_exists() expects 1 argument"
-        )
+        raise StdLibError("file_exists() expects 1 argument")
 
     path = arguments[0]
 
     if not isinstance(path, str):
-        raise StdLibError(
-            "File path must be a string"
-        )
+        raise StdLibError("File path must be a string")
 
     return os.path.isfile(path)
 
 
 def builtin_file_delete(arguments):
     if len(arguments) != 1:
-        raise StdLibError(
-            "file_delete() expects 1 argument"
-        )
+        raise StdLibError("file_delete() expects 1 argument")
 
     path = arguments[0]
 
     if not isinstance(path, str):
-        raise StdLibError(
-            "File path must be a string"
-        )
+        raise StdLibError("File path must be a string")
 
     try:
         if os.path.isfile(path):
@@ -333,9 +303,67 @@ def builtin_file_delete(arguments):
 
         return False
     except OSError:
+        raise StdLibError("Unable to delete file")
+
+
+def builtin_now(arguments):
+    if len(arguments) != 0:
+        raise StdLibError("now() expects 0 arguments")
+
+    return datetime.datetime.now().isoformat(
+        timespec="seconds"
+    )
+
+
+def builtin_today(arguments):
+    if len(arguments) != 0:
+        raise StdLibError("today() expects 0 arguments")
+
+    return datetime.date.today().isoformat()
+
+
+def builtin_timestamp(arguments):
+    if len(arguments) != 0:
+        raise StdLibError("timestamp() expects 0 arguments")
+
+    return int(time.time())
+
+
+def builtin_time_format(arguments):
+    if len(arguments) != 1:
         raise StdLibError(
-            "Unable to delete file"
+            "time_format() expects 1 argument"
         )
+
+    if not isinstance(arguments[0], str):
+        raise StdLibError(
+            "time_format() requires a string"
+        )
+
+    return datetime.datetime.now().strftime(
+        arguments[0]
+    )
+
+
+def builtin_sleep(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("sleep() expects 1 argument")
+
+    try:
+        seconds = float(arguments[0])
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "sleep() requires a number"
+        )
+
+    if seconds < 0:
+        raise StdLibError(
+            "sleep() requires a non-negative value"
+        )
+
+    time.sleep(seconds)
+
+    return True
 
 
 BUILTINS = {
@@ -365,5 +393,10 @@ BUILTINS = {
     "file_read": builtin_file_read,
     "file_append": builtin_file_append,
     "file_exists": builtin_file_exists,
-    "file_delete": builtin_file_delete
+    "file_delete": builtin_file_delete,
+    "now": builtin_now,
+    "today": builtin_today,
+    "timestamp": builtin_timestamp,
+    "time_format": builtin_time_format,
+    "sleep": builtin_sleep
 }
