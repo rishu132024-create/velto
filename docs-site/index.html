@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Velto Documentation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Velto Documentation</h1>
+        <p>Learn Velto programming step by step.</p>
+    </header>
+
+    <div class="layout">
+        <aside>
+            <a href="#getting-started">Getting Started</a>
+            <a href="#syntax">Syntax</a>
+            <a href="#variables">Variables</a>
+            <a href="#conditions">Conditions</a>
+            <a href="#loops">Loops</a>
+            <a href="#functions">Functions</a>
+            <a href="#collections">Collections</a>
+            <a href="#modules">Modules</a>
+            <a href="#stdlib">Standard Library</a>
+            <a href="#web">Web Development</a>
+            <a href="#games">Game Development</a>
+            <a href="#tools">Developer Tools</a>
+        </aside>
+
+        <main>
+            <section id="getting-started">
+                <h2>Getting Started</h2>
+
+                <p>
+                    Velto is a programming language designed
+                    around simple and readable syntax.
+                </p>
+
+                <pre><code>name = "Velto"
+say name</code></pre>
+            </section>
+
+            <section id="syntax">
+                <h2>Syntax</h2>
+
+                <p>
+                    Velto uses indentation to organize blocks.
+                </p>
+
+                <pre><code>if name == "Velto":
+    say "Hello"</code></pre>
+            </section>
+
+            <section id="variables">
+                <h2>Variables</h2>
+
+                <pre><code>name = "Velto"
+version = 1
+active = True
+
+say name
+say version
+say active</code></pre>
+            </section>
+
+            <section id="conditions">
+                <h2>Conditions</h2>
+
+                <pre><code>age = 18
+
+if age >= 18:
+    say "Adult"
+else:
+    say "Minor"</code></pre>
+            </section>
+
+            <section id="loops">
+                <h2>Loops</h2>
+
+                <pre><code>numbers = [1, 2, 3]
+
+for number in numbers:
+    say number</code></pre>
+
+                <pre><code>count = 0
+
+while count < 3:
+    say count
+    count = count + 1</code></pre>
+            </section>
+
+            <section id="functions">
+                <h2>Functions</h2>
+
+                <pre><code>func hello:
+    say "Hello from Velto"
+
+hello()</code></pre>
+            </section>
+
+            <section id="collections">
+                <h2>Collections</h2>
+
+                <h3>List</h3>
+
+                <pre><code>numbers = [10, 20, 30]
+say numbers[0]</code></pre>
+
+                <h3>Dictionary</h3>
+
+                <pre><code>user = {
+    "name": "Velto",
+    "version": 1
+}
+
+say user["name"]</code></pre>
+
+                <h3>Tuple</h3>
+
+                <pre><code>data = ("Velto", 2026)
+
+say data[0]</code></pre>
+            </section>
+
+            <section id="modules">
+                <h2>Modules</h2>
+
+                <pre><code>import math
+
+say math.add(10, 20)</code></pre>
+            </section>
+
+            <section id="stdlib">
+                <h2>Standard Library</h2>
+
+                <p>
+                    Velto provides standard library foundations
+                    for mathematics, JSON, files, dates, HTTP,
+                    random values and data structures.
+                </p>
+
+                <pre><code>say sqrt(25)
+say random()
+
+text = json_stringify({
+    "name": "Velto"
+})
+
+say text</code></pre>
+            </section>
+
+            <section id="web">
+                <h2>Web Development</h2>
+
+                <p>
+                    Velto includes foundations for HTTP servers,
+                    web applications, templates and REST APIs.
+                </p>
+            </section>
+
+            <section id="games">
+                <h2>Game Development</h2>
+
+                <p>
+                    Velto includes foundations for sprites,
+                    animation, collision, physics, input and sound.
+                </p>
+            </section>
+
+            <section id="tools">
+                <h2>Developer Tools</h2>
+
+                <ul>
+                    <li>Formatter</li>
+                    <li>Linter</li>
+                    <li>Debugger foundation</li>
+                    <li>Testing framework</li>
+                    <li>Documentation generator</li>
+                    <li>VS Code extension</li>
+                    <li>Web IDE</li>
+                </ul>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        Velto Programming Language
+    </footer>
+</body>
+</html>
