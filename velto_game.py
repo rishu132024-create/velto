@@ -1,4 +1,5 @@
 from velto_sprite import VeltoSprite
+from velto_animation import VeltoAnimation
 
 
 def sprite(image=None, name="sprite"):
@@ -24,3 +25,7 @@ def create_sprite(
         width=width,
         height=height
     )
+
+
+def animation(name="animation"):
+    return VeltoAnimation(name)
