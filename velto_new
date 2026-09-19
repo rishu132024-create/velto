@@ -1,0 +1,13 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+if [ "$1" != "new" ]; then
+    echo "Usage: velto new <project-name>"
+    exit 1
+fi
+
+if [ -z "$2" ]; then
+    echo "Velto Error: Project name is required"
+    exit 1
+fi
+
+python "$HOME/velto/velto_project.py" "$2"

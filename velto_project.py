@@ -1,4 +1,5 @@
 import os
+import sys
 
 def create_project(name):
     if not name:
@@ -11,13 +12,10 @@ def create_project(name):
 
     os.makedirs(os.path.join(name, "packages"))
 
-    main_file = os.path.join(name, "main.vlt")
-    config_file = os.path.join(name, "velto.toml")
-
-    with open(main_file, "w", encoding="utf-8") as file:
+    with open(os.path.join(name, "main.vlt"), "w", encoding="utf-8") as file:
         file.write('say "Hello from Velto!"\n')
 
-    with open(config_file, "w", encoding="utf-8") as file:
+    with open(os.path.join(name, "velto.toml"), "w", encoding="utf-8") as file:
         file.write(
             '[project]\n'
             'name = "' + name + '"\n'
@@ -26,10 +24,11 @@ def create_project(name):
         )
 
     print("Created Velto project: " + name)
-    print("")
-    print(name + "/")
-    print("├── main.vlt")
-    print("├── velto.toml")
-    print("└── packages/")
-
     return 0
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python velto_project.py <project-name>")
+        sys.exit(1)
+
+    sys.exit(create_project(sys.argv[1]))
