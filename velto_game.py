@@ -9,13 +9,13 @@ from velto_ui import Label
 from velto_ui import Panel
 from velto_buttons import VeltoButton
 from velto_textfield import VeltoTextField
+from velto_layout import Row
+from velto_layout import Column
+from velto_layout import Grid
 
 
 def sprite(image=None, name="sprite"):
-    return VeltoSprite(
-        name=name,
-        image=image
-    )
+    return VeltoSprite(name=name, image=image)
 
 
 def create_sprite(
@@ -124,4 +124,54 @@ def text_field(
         y,
         width,
         height
+    )
+
+
+def row(
+    x=0,
+    y=0,
+    width=400,
+    height=100,
+    spacing=10
+):
+    return Row(
+        x,
+        y,
+        width,
+        height,
+        spacing
+    )
+
+
+def column(
+    x=0,
+    y=0,
+    width=400,
+    height=300,
+    spacing=10
+):
+    return Column(
+        x,
+        y,
+        width,
+        height,
+        spacing
+    )
+
+
+def grid(
+    columns=2,
+    x=0,
+    y=0,
+    width=400,
+    height=300,
+    spacing=10
+):
+    return Grid(
+        columns,
+        x,
+        y,
+        width,
+        height,
+        spacing
     )
