@@ -4,6 +4,7 @@ from velto_collision import intersects
 from velto_collision import point_inside
 from velto_collision import distance
 from velto_sound import VeltoSound
+from velto_physics import PhysicsBody
 
 
 def sprite(image=None, name="sprite"):
@@ -39,3 +40,7 @@ def distance_between(first, second):
 
 def sound(source=None):
     return VeltoSound(source)
+
+
+def physics(x=0, y=0, mass=1.0):
+    return PhysicsBody(x, y, mass)
