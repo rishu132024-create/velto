@@ -8,6 +8,7 @@ from velto_physics import PhysicsBody
 from velto_ui import Label
 from velto_ui import Panel
 from velto_buttons import VeltoButton
+from velto_textfield import VeltoTextField
 
 
 def sprite(image=None, name="sprite"):
@@ -101,6 +102,24 @@ def panel(
     height=200
 ):
     return Panel(
+        x,
+        y,
+        width,
+        height
+    )
+
+
+def text_field(
+    text="",
+    placeholder="",
+    x=0,
+    y=0,
+    width=200,
+    height=40
+):
+    return VeltoTextField(
+        text,
+        placeholder,
         x,
         y,
         width,
