@@ -1,0 +1,9 @@
+a = 20
+b = 5
+
+say "Velto Calculator"
+
+say a + b
+say a - b
+say a * b
+say a / b
