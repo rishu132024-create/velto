@@ -1,0 +1,7 @@
+{
+    "name": "hello",
+    "version": "1.0.0",
+    "description": "A simple Velto package",
+    "language": "velto",
+    "entry": "hello.vlt"
+}
