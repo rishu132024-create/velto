@@ -102,3 +102,19 @@ Velto is released under the MIT License.
 ⭐ If you like Velto, consider starring the repository!
 
 Velto — Simple code. Big possibilities.
+
+## Installation
+
+Install Velto with pip:
+
+python -m pip install velto-lang
+
+Then check the installation:
+
+velto --version
+
+Run a Velto program:
+
+velto hello.vlt
+
+See INSTALL.md for Linux, macOS, Windows, and Android instructions.
