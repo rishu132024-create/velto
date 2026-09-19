@@ -40,3 +40,17 @@ You can share Velto:
 ## Goal
 
 Build an open and friendly ecosystem around the Velto programming language.
+
+## Contributors
+
+Velto welcomes contributions from developers of all experience levels.
+
+See CONTRIBUTING.md for contribution guidelines.
+
+See CONTRIBUTORS.md for the contributor list.
+
+## GitHub Contributions
+
+Bug reports and feature requests can be submitted through GitHub Issues.
+
+Code and documentation improvements can be submitted through Pull Requests.
