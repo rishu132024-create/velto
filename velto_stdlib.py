@@ -333,18 +333,12 @@ def builtin_timestamp(arguments):
 
 def builtin_time_format(arguments):
     if len(arguments) != 1:
-        raise StdLibError(
-            "time_format() expects 1 argument"
-        )
+        raise StdLibError("time_format() expects 1 argument")
 
     if not isinstance(arguments[0], str):
-        raise StdLibError(
-            "time_format() requires a string"
-        )
+        raise StdLibError("time_format() requires a string")
 
-    return datetime.datetime.now().strftime(
-        arguments[0]
-    )
+    return datetime.datetime.now().strftime(arguments[0])
 
 
 def builtin_sleep(arguments):
@@ -354,9 +348,7 @@ def builtin_sleep(arguments):
     try:
         seconds = float(arguments[0])
     except (TypeError, ValueError):
-        raise StdLibError(
-            "sleep() requires a number"
-        )
+        raise StdLibError("sleep() requires a number")
 
     if seconds < 0:
         raise StdLibError(
@@ -370,16 +362,12 @@ def builtin_sleep(arguments):
 
 def builtin_http_get(arguments):
     if len(arguments) != 1:
-        raise StdLibError(
-            "http_get() expects 1 argument"
-        )
+        raise StdLibError("http_get() expects 1 argument")
 
     url = arguments[0]
 
     if not isinstance(url, str):
-        raise StdLibError(
-            "URL must be a string"
-        )
+        raise StdLibError("URL must be a string")
 
     try:
         request = urllib.request.Request(
@@ -412,17 +400,13 @@ def builtin_http_get(arguments):
 
 def builtin_http_post(arguments):
     if len(arguments) != 2:
-        raise StdLibError(
-            "http_post() expects 2 arguments"
-        )
+        raise StdLibError("http_post() expects 2 arguments")
 
     url = arguments[0]
     data = arguments[1]
 
     if not isinstance(url, str):
-        raise StdLibError(
-            "URL must be a string"
-        )
+        raise StdLibError("URL must be a string")
 
     if not isinstance(data, str):
         data = str(data)
@@ -456,6 +440,138 @@ def builtin_http_post(arguments):
         raise StdLibError(
             "HTTP POST request failed"
         )
+
+
+def builtin_set(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("set() expects 1 argument")
+
+    try:
+        return list(dict.fromkeys(arguments[0]))
+    except TypeError:
+        raise StdLibError("set() requires an iterable")
+
+
+def builtin_unique(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("unique() expects 1 argument")
+
+    try:
+        return list(dict.fromkeys(arguments[0]))
+    except TypeError:
+        raise StdLibError("unique() requires an iterable")
+
+
+def builtin_contains(arguments):
+    if len(arguments) != 2:
+        raise StdLibError("contains() expects 2 arguments")
+
+    try:
+        return arguments[1] in arguments[0]
+    except TypeError:
+        raise StdLibError("Invalid value for contains()")
+
+
+def builtin_keys(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("keys() expects 1 argument")
+
+    if not isinstance(arguments[0], dict):
+        raise StdLibError("keys() requires a dictionary")
+
+    return list(arguments[0].keys())
+
+
+def builtin_values(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("values() expects 1 argument")
+
+    if not isinstance(arguments[0], dict):
+        raise StdLibError("values() requires a dictionary")
+
+    return list(arguments[0].values())
+
+
+def builtin_items(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("items() expects 1 argument")
+
+    if not isinstance(arguments[0], dict):
+        raise StdLibError("items() requires a dictionary")
+
+    return [
+        [key, value]
+        for key, value in arguments[0].items()
+    ]
+
+
+def builtin_sort(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("sort() expects 1 argument")
+
+    if not isinstance(arguments[0], list):
+        raise StdLibError("sort() requires a list")
+
+    result = list(arguments[0])
+
+    try:
+        result.sort()
+    except TypeError:
+        raise StdLibError("List values cannot be sorted")
+
+    return result
+
+
+def builtin_reverse(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("reverse() expects 1 argument")
+
+    if not isinstance(arguments[0], list):
+        raise StdLibError("reverse() requires a list")
+
+    result = list(arguments[0])
+    result.reverse()
+
+    return result
+
+
+def builtin_join(arguments):
+    if len(arguments) != 2:
+        raise StdLibError("join() expects 2 arguments")
+
+    separator = arguments[0]
+    values = arguments[1]
+
+    if not isinstance(separator, str):
+        raise StdLibError("join() separator must be a string")
+
+    if not isinstance(values, list):
+        raise StdLibError("join() requires a list")
+
+    try:
+        return separator.join(str(value) for value in values)
+    except TypeError:
+        raise StdLibError("Invalid values for join()")
+
+
+def builtin_split(arguments):
+    if len(arguments) not in (1, 2):
+        raise StdLibError("split() expects 1 or 2 arguments")
+
+    text = arguments[0]
+
+    if not isinstance(text, str):
+        raise StdLibError("split() requires a string")
+
+    if len(arguments) == 1:
+        return text.split()
+
+    separator = arguments[1]
+
+    if not isinstance(separator, str):
+        raise StdLibError("split() separator must be a string")
+
+    return text.split(separator)
 
 
 BUILTINS = {
@@ -492,5 +608,15 @@ BUILTINS = {
     "time_format": builtin_time_format,
     "sleep": builtin_sleep,
     "http_get": builtin_http_get,
-    "http_post": builtin_http_post
+    "http_post": builtin_http_post,
+    "set": builtin_set,
+    "unique": builtin_unique,
+    "contains": builtin_contains,
+    "keys": builtin_keys,
+    "values": builtin_values,
+    "items": builtin_items,
+    "sort": builtin_sort,
+    "reverse": builtin_reverse,
+    "join": builtin_join,
+    "split": builtin_split
 }
