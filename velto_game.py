@@ -5,6 +5,9 @@ from velto_collision import point_inside
 from velto_collision import distance
 from velto_sound import VeltoSound
 from velto_physics import PhysicsBody
+from velto_ui import Button
+from velto_ui import Label
+from velto_ui import Panel
 
 
 def sprite(image=None, name="sprite"):
@@ -44,3 +47,15 @@ def sound(source=None):
 
 def physics(x=0, y=0, mass=1.0):
     return PhysicsBody(x, y, mass)
+
+
+def button(text="Button", x=0, y=0):
+    return Button(text, x, y)
+
+
+def label(text="", x=0, y=0):
+    return Label(text, x, y)
+
+
+def panel(x=0, y=0, width=300, height=200):
+    return Panel(x, y, width, height)
