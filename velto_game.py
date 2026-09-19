@@ -12,6 +12,7 @@ from velto_textfield import VeltoTextField
 from velto_layout import Row
 from velto_layout import Column
 from velto_layout import Grid
+from velto_app import VeltoApp
 
 
 def sprite(image=None, name="sprite"):
@@ -174,4 +175,16 @@ def grid(
         width,
         height,
         spacing
+    )
+
+
+def app(
+    title="Velto App",
+    width=800,
+    height=600
+):
+    return VeltoApp(
+        title,
+        width,
+        height
     )
