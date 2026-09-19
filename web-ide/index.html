@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Velto Web IDE</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Velto</h1>
+        <p>Web IDE</p>
+    </header>
+
+    <main>
+        <section class="editor-panel">
+            <div class="panel-title">
+                <span>Code</span>
+                <button id="run">Run</button>
+            </div>
+
+            <textarea id="editor">name = "Velto"
+
+if name == "Velto":
+    say name
+
+numbers = [10, 20, 30]
+
+for number in numbers:
+    say number</textarea>
+        </section>
+
+        <section class="output-panel">
+            <div class="panel-title">
+                <span>Output</span>
+                <button id="clear">Clear</button>
+            </div>
+
+            <pre id="output">Click Run to execute your Velto program.</pre>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
