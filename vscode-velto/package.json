@@ -1,0 +1,35 @@
+{
+    "name": "velto-language",
+    "displayName": "Velto Language",
+    "description": "Visual Studio Code language support for Velto",
+    "version": "0.73.0",
+    "publisher": "rishu132024-create",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "velto",
+                "aliases": [
+                    "Velto",
+                    "velto"
+                ],
+                "extensions": [
+                    ".vlt"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "velto",
+                "scopeName": "source.velto",
+                "path": "./syntaxes/velto.tmLanguage.json"
+            }
+        ]
+    }
+}
