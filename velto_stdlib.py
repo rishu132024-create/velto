@@ -1,86 +1,201 @@
+import math
+
+
 class StdLibError(Exception):
     pass
 
 
-def builtin_len(args):
-    if len(args) != 1:
+def builtin_len(arguments):
+    if len(arguments) != 1:
         raise StdLibError("len() expects 1 argument")
 
-    value = args[0]
+    try:
+        return len(arguments[0])
+    except TypeError:
+        raise StdLibError(
+            "Object has no length"
+        )
 
-    if isinstance(value, (str, list)):
-        return len(value)
 
-    raise StdLibError("len() supports strings and lists")
-
-
-def builtin_str(args):
-    if len(args) != 1:
+def builtin_str(arguments):
+    if len(arguments) != 1:
         raise StdLibError("str() expects 1 argument")
 
-    return str(args[0])
+    return str(arguments[0])
 
 
-def builtin_int(args):
-    if len(args) != 1:
+def builtin_int(arguments):
+    if len(arguments) != 1:
         raise StdLibError("int() expects 1 argument")
 
     try:
-        return int(args[0])
+        return int(arguments[0])
     except (ValueError, TypeError):
-        raise StdLibError("int() received an invalid value")
+        raise StdLibError(
+            "Cannot convert value to int"
+        )
 
 
-def builtin_float(args):
-    if len(args) != 1:
+def builtin_float(arguments):
+    if len(arguments) != 1:
         raise StdLibError("float() expects 1 argument")
 
     try:
-        return float(args[0])
+        return float(arguments[0])
     except (ValueError, TypeError):
-        raise StdLibError("float() received an invalid value")
+        raise StdLibError(
+            "Cannot convert value to float"
+        )
 
 
-def builtin_abs(args):
-    if len(args) != 1:
+def builtin_abs(arguments):
+    if len(arguments) != 1:
         raise StdLibError("abs() expects 1 argument")
 
     try:
-        return abs(args[0])
+        return abs(arguments[0])
     except TypeError:
-        raise StdLibError("abs() received an invalid value")
+        raise StdLibError(
+            "Invalid value for abs()"
+        )
 
 
-def builtin_min(args):
-    if len(args) < 1:
+def builtin_min(arguments):
+    if len(arguments) == 0:
         raise StdLibError("min() expects at least 1 argument")
 
     try:
-        return min(args)
+        return min(arguments)
     except TypeError:
-        raise StdLibError("min() received invalid values")
+        raise StdLibError(
+            "Invalid values for min()"
+        )
 
 
-def builtin_max(args):
-    if len(args) < 1:
+def builtin_max(arguments):
+    if len(arguments) == 0:
         raise StdLibError("max() expects at least 1 argument")
 
     try:
-        return max(args)
+        return max(arguments)
     except TypeError:
-        raise StdLibError("max() received invalid values")
-
-
-def builtin_range(args):
-    if len(args) not in (1, 2, 3):
         raise StdLibError(
-            "range() expects 1, 2, or 3 arguments"
+            "Invalid values for max()"
+        )
+
+
+def builtin_range(arguments):
+    if len(arguments) < 1 or len(arguments) > 3:
+        raise StdLibError(
+            "range() expects 1 to 3 arguments"
         )
 
     try:
-        return list(range(*args))
+        return list(range(*arguments))
     except (TypeError, ValueError):
-        raise StdLibError("range() received invalid values")
+        raise StdLibError(
+            "Invalid arguments for range()"
+        )
+
+
+def builtin_sqrt(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("sqrt() expects 1 argument")
+
+    try:
+        return math.sqrt(arguments[0])
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "Invalid value for sqrt()"
+        )
+
+
+def builtin_power(arguments):
+    if len(arguments) != 2:
+        raise StdLibError(
+            "power() expects 2 arguments"
+        )
+
+    try:
+        return arguments[0] ** arguments[1]
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "Invalid values for power()"
+        )
+
+
+def builtin_floor(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("floor() expects 1 argument")
+
+    try:
+        return math.floor(arguments[0])
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "Invalid value for floor()"
+        )
+
+
+def builtin_ceil(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("ceil() expects 1 argument")
+
+    try:
+        return math.ceil(arguments[0])
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "Invalid value for ceil()"
+        )
+
+
+def builtin_sin(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("sin() expects 1 argument")
+
+    try:
+        return math.sin(arguments[0])
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "Invalid value for sin()"
+        )
+
+
+def builtin_cos(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("cos() expects 1 argument")
+
+    try:
+        return math.cos(arguments[0])
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "Invalid value for cos()"
+        )
+
+
+def builtin_tan(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("tan() expects 1 argument")
+
+    try:
+        return math.tan(arguments[0])
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "Invalid value for tan()"
+        )
+
+
+def builtin_round(arguments):
+    if len(arguments) not in (1, 2):
+        raise StdLibError(
+            "round() expects 1 or 2 arguments"
+        )
+
+    try:
+        return round(*arguments)
+    except (TypeError, ValueError):
+        raise StdLibError(
+            "Invalid arguments for round()"
+        )
 
 
 BUILTINS = {
@@ -91,5 +206,13 @@ BUILTINS = {
     "abs": builtin_abs,
     "min": builtin_min,
     "max": builtin_max,
-    "range": builtin_range
+    "range": builtin_range,
+    "sqrt": builtin_sqrt,
+    "power": builtin_power,
+    "floor": builtin_floor,
+    "ceil": builtin_ceil,
+    "sin": builtin_sin,
+    "cos": builtin_cos,
+    "tan": builtin_tan,
+    "round": builtin_round
 }
