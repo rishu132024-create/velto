@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Velto Playground</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+    <div class="brand">
+        <div class="logo">V</div>
+        <div>
+            <h1>Velto</h1>
+            <span>Playground</span>
+        </div>
+    </div>
+
+    <div class="header-actions">
+        <span class="version">v1.0.0</span>
+        <button id="runButton" class="run-button">▶ Run</button>
+    </div>
+</header>
+
+<main class="workspace">
+
+    <aside class="explorer">
+        <div class="explorer-heading">
+            <strong>PROJECT</strong>
+            <button id="newFileButton" class="small-button">+ File</button>
+        </div>
+
+        <div id="fileList" class="file-list"></div>
+    </aside>
+
+    <section class="main-area">
+
+        <section class="editor-panel">
+            <div class="panel-heading">
+                <span id="currentFile">main.vlt</span>
+
+                <div class="file-actions">
+                    <button id="downloadButton" class="small-button">Download</button>
+                    <button id="deleteButton" class="small-button">Delete</button>
+                </div>
+            </div>
+
+            <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        </section>
+
+        <section class="input-panel">
+            <div class="panel-heading">
+                <span>⌨ Program Input</span>
+            </div>
+
+            <textarea id="input" placeholder="Enter program input..."></textarea>
+        </section>
+
+        <section class="console-panel">
+            <div class="console-heading">
+                <span>Terminal</span>
+                <span id="status" class="status">Ready</span>
+            </div>
+
+            <div class="tabs">
+                <button id="outputTab" class="tab active">Output</button>
+                <button id="errorsTab" class="tab">Errors</button>
+            </div>
+
+            <pre id="output" class="console-content">Run your Velto program.</pre>
+            <pre id="errors" class="console-content hidden">No errors.</pre>
+        </section>
+
+    </section>
+</main>
+
+<footer>
+    <span>Velto Playground</span>
+    <span>Write. Run. Create.</span>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

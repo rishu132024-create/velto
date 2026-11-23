@@ -1,0 +1,17 @@
+say "Welcome to Velto Junior!"
+
+name = input("What is your name? ")
+
+say "Hello, " + name
+
+age = 15
+
+if age >= 13:
+    say "You can learn programming!"
+
+numbers = [10, 20, 30]
+
+for number in numbers:
+    say number
+
+say "Learning is fun!"

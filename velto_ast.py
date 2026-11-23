@@ -114,24 +114,29 @@ class ASTInterpreter:
                 parts = node.name.split(".")
 
                 module_name = parts[0]
-                member_name = ".".join(
-                    parts[1:]
-                )
+                member_name = ".".join(parts[1:])
 
                 if module_name in self.modules:
-                    module = self.modules[
-                        module_name
-                    ]
+                    module = self.modules[module_name]
 
                     if member_name in module.variables:
-                        return module.variables[
-                            member_name
-                        ]
+                        return module.variables[member_name]
 
                     self.error(
                         f"Module member not found: {node.name}",
                         node
                     )
+
+            if node.name in self.modules:
+                module = self.modules[node.name]
+
+                if module.variables:
+                    return module.variables
+
+                self.error(
+                    f"Module has no variables: {node.name}",
+                    node
+                )
 
             if node.name not in self.variables:
                 self.error(
@@ -139,9 +144,7 @@ class ASTInterpreter:
                     node
                 )
 
-            return self.variables[
-                node.name
-            ]
+            return self.variables[node.name]
 
         if isinstance(node, ListNode):
             return [
@@ -159,17 +162,11 @@ class ASTInterpreter:
             result = {}
 
             for key_node, value_node in node.pairs:
-                key = self.evaluate(
-                    key_node
-                )
-
-                value = self.evaluate(
-                    value_node
-                )
+                key = self.evaluate(key_node)
+                value = self.evaluate(value_node)
 
                 try:
                     result[key] = value
-
                 except TypeError:
                     self.error(
                         "Dictionary key must be hashable",
@@ -179,13 +176,8 @@ class ASTInterpreter:
             return result
 
         if isinstance(node, IndexNode):
-            value = self.evaluate(
-                node.value
-            )
-
-            index = self.evaluate(
-                node.index
-            )
+            value = self.evaluate(node.value)
+            index = self.evaluate(node.index)
 
             try:
                 return value[index]
@@ -206,30 +198,19 @@ class ASTInterpreter:
                 )
 
         if isinstance(node, BinaryOpNode):
-            return self.evaluate_binary(
-                node
-            )
+            return self.evaluate_binary(node)
 
         if isinstance(node, CallNode):
-            return self.call_function(
-                node
-            )
+            return self.call_function(node)
 
         self.error(
-            f"Unknown expression node: "
-            f"{type(node).__name__}",
+            f"Unknown expression node: {type(node).__name__}",
             node
         )
 
     def evaluate_binary(self, node):
-        left = self.evaluate(
-            node.left
-        )
-
-        right = self.evaluate(
-            node.right
-        )
-
+        left = self.evaluate(node.left)
+        right = self.evaluate(node.right)
         operator = node.operator
 
         try:
@@ -288,40 +269,21 @@ class ASTInterpreter:
             return
 
         if isinstance(node, ImportNode):
-            self.import_module(
-                node
-            )
-
+            self.import_module(node)
             return
 
         if isinstance(node, AssignmentNode):
-            value = self.evaluate(
-                node.value
-            )
+            value = self.evaluate(node.value)
 
-            self.variables[
-                node.name
-            ] = value
-
+            self.variables[node.name] = value
             return
 
         if isinstance(node, IndexAssignmentNode):
-            target = self.evaluate(
-                node.target
-            )
+            target = self.evaluate(node.target)
+            index = self.evaluate(node.index)
+            value = self.evaluate(node.value)
 
-            index = self.evaluate(
-                node.index
-            )
-
-            value = self.evaluate(
-                node.value
-            )
-
-            if not isinstance(
-                target,
-                (list, dict)
-            ):
+            if not isinstance(target, (list, dict)):
                 self.error(
                     "Index assignment requires a list or dictionary",
                     node
@@ -343,47 +305,29 @@ class ASTInterpreter:
             return
 
         if isinstance(node, SayNode):
-            value = self.evaluate(
-                node.value
-            )
-
+            value = self.evaluate(node.value)
             print(value)
-
             return
 
-        if isinstance(
-            node,
-            ExpressionStatementNode
-        ):
-            self.evaluate(
-                node.expression
-            )
-
+        if isinstance(node, ExpressionStatementNode):
+            self.evaluate(node.expression)
             return
 
         if isinstance(node, IfNode):
-            condition = self.evaluate(
-                node.condition
-            )
+            condition = self.evaluate(node.condition)
 
             if condition:
-                self.execute_block(
-                    node.body
-                )
+                self.execute_block(node.body)
 
             elif node.else_body is not None:
-                self.execute_block(
-                    node.else_body
-                )
+                self.execute_block(node.else_body)
 
             return
 
         if isinstance(node, WhileNode):
             count = 0
 
-            while self.evaluate(
-                node.condition
-            ):
+            while self.evaluate(node.condition):
                 count += 1
 
                 if count > self.loop_limit:
@@ -393,9 +337,7 @@ class ASTInterpreter:
                     )
 
                 try:
-                    self.execute_block(
-                        node.body
-                    )
+                    self.execute_block(node.body)
 
                 except ContinueSignal:
                     continue
@@ -406,9 +348,7 @@ class ASTInterpreter:
             return
 
         if isinstance(node, ForNode):
-            iterable = self.evaluate(
-                node.iterable
-            )
+            iterable = self.evaluate(node.iterable)
 
             try:
                 values = list(iterable)
@@ -420,14 +360,10 @@ class ASTInterpreter:
                 )
 
             for value in values:
-                self.variables[
-                    node.variable
-                ] = value
+                self.variables[node.variable] = value
 
                 try:
-                    self.execute_block(
-                        node.body
-                    )
+                    self.execute_block(node.body)
 
                 except ContinueSignal:
                     continue
@@ -444,9 +380,7 @@ class ASTInterpreter:
             raise ContinueSignal()
 
         if isinstance(node, FunctionDefNode):
-            self.functions[
-                node.name
-            ] = Function(
+            self.functions[node.name] = Function(
                 node.name,
                 node.parameters,
                 node.body,
@@ -459,15 +393,11 @@ class ASTInterpreter:
             if node.value is None:
                 raise ReturnSignal(None)
 
-            value = self.evaluate(
-                node.value
-            )
-
+            value = self.evaluate(node.value)
             raise ReturnSignal(value)
 
         self.error(
-            f"Unknown statement node: "
-            f"{type(node).__name__}",
+            f"Unknown statement node: {type(node).__name__}",
             node
         )
 
@@ -483,9 +413,7 @@ class ASTInterpreter:
 
         if node.name in BUILTINS:
             try:
-                return BUILTINS[
-                    node.name
-                ](arguments)
+                return BUILTINS[node.name](arguments)
 
             except StdLibError as error:
                 self.error(
@@ -497,10 +425,7 @@ class ASTInterpreter:
             parts = node.name.split(".")
 
             module_name = parts[0]
-
-            function_name = ".".join(
-                parts[1:]
-            )
+            function_name = ".".join(parts[1:])
 
             if module_name not in self.modules:
                 self.error(
@@ -521,9 +446,7 @@ class ASTInterpreter:
                 node
             )
 
-        function = self.functions[
-            node.name
-        ]
+        function = self.functions[node.name]
 
         return self.execute_function(
             function,
@@ -537,9 +460,7 @@ class ASTInterpreter:
         node,
         arguments
     ):
-        if len(arguments) != len(
-            function.parameters
-        ):
+        if len(arguments) != len(function.parameters):
             self.error(
                 f"Function {function.name} expects "
                 f"{len(function.parameters)} "
@@ -551,26 +472,17 @@ class ASTInterpreter:
         old_variables = self.variables
         old_functions = self.functions
 
-        self.variables = dict(
-            function.closure
-        )
-
-        self.functions = dict(
-            self.functions
-        )
+        self.variables = dict(function.closure)
+        self.functions = dict(self.functions)
 
         for parameter, argument in zip(
             function.parameters,
             arguments
         ):
-            self.variables[
-                parameter
-            ] = argument
+            self.variables[parameter] = argument
 
         try:
-            self.execute_block(
-                function.body
-            )
+            self.execute_block(function.body)
 
         except ReturnSignal as signal:
             return signal.value
@@ -595,13 +507,9 @@ class ASTInterpreter:
                 node
             )
 
-        function = module.functions[
-            function_name
-        ]
+        function = module.functions[function_name]
 
-        if len(arguments) != len(
-            function.parameters
-        ):
+        if len(arguments) != len(function.parameters):
             self.error(
                 f"Function "
                 f"{module.name}.{function_name} "
@@ -615,26 +523,17 @@ class ASTInterpreter:
         old_variables = self.variables
         old_functions = self.functions
 
-        self.variables = dict(
-            module.variables
-        )
-
-        self.functions = dict(
-            module.functions
-        )
+        self.variables = dict(module.variables)
+        self.functions = dict(module.functions)
 
         for parameter, argument in zip(
             function.parameters,
             arguments
         ):
-            self.variables[
-                parameter
-            ] = argument
+            self.variables[parameter] = argument
 
         try:
-            self.execute_block(
-                function.body
-            )
+            self.execute_block(function.body)
 
         except ReturnSignal as signal:
             return signal.value
@@ -645,18 +544,65 @@ class ASTInterpreter:
 
         return None
 
+    def find_module_path(self, module_name):
+        current = Path.cwd().resolve()
+
+        while True:
+            package_path = (
+                current
+                / ".velto"
+                / "packages"
+                / module_name
+                / f"{module_name}.vlt"
+            )
+
+            if package_path.is_file():
+                return package_path
+
+            package_directory = (
+                current
+                / ".velto"
+                / "packages"
+                / module_name
+            )
+
+            if package_directory.is_dir():
+                candidates = sorted(
+                    package_directory.glob("*.vlt")
+                )
+
+                if candidates:
+                    return candidates[0]
+
+            examples_path = (
+                current
+                / "examples"
+                / f"{module_name}.vlt"
+            )
+
+            if examples_path.is_file():
+                return examples_path
+
+            parent = current.parent
+
+            if parent == current:
+                break
+
+            current = parent
+
+        return None
+
     def import_module(self, node):
-        module_name = node.name
+        module_name = node.module
 
         if module_name in self.modules:
             return
 
-        module_path = (
-            Path("examples")
-            / f"{module_name}.vlt"
+        module_path = self.find_module_path(
+            module_name
         )
 
-        if not module_path.exists():
+        if module_path is None:
             self.error(
                 f"Module not found: {module_name}",
                 node
@@ -667,13 +613,9 @@ class ASTInterpreter:
                 encoding="utf-8"
             )
 
-            tokens = tokenize(
-                source
-            )
+            tokens = tokenize(source)
 
-            tree = parse(
-                tokens
-            )
+            tree = parse(tokens)
 
         except ParserError as error:
             self.error(
@@ -692,9 +634,7 @@ class ASTInterpreter:
         module_interpreter = ASTInterpreter()
 
         try:
-            module_interpreter.execute(
-                tree
-            )
+            module_interpreter.execute(tree)
 
         except ASTInterpreterError as error:
             self.error(
@@ -703,9 +643,7 @@ class ASTInterpreter:
                 node
             )
 
-        module = Module(
-            module_name
-        )
+        module = Module(module_name)
 
         module.variables = dict(
             module_interpreter.variables
@@ -715,9 +653,7 @@ class ASTInterpreter:
             module_interpreter.functions
         )
 
-        self.modules[
-            module_name
-        ] = module
+        self.modules[module_name] = module
 
 
 def run_ast(tree):

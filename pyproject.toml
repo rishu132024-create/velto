@@ -1,22 +1,23 @@
 [build-system]
-requires = ["setuptools>=68", "wheel", "build"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "velto-lang"
-version = "0.84.0"
+version = "0.87.1"
 description = "Velto programming language"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
+
 authors = [
     {name = "Rishu132024-create"}
 ]
+
 keywords = [
     "velto",
     "programming-language",
-    "interpreter",
-    "language"
+    "interpreter"
 ]
 
 classifiers = [
@@ -32,3 +33,43 @@ Issues = "https://github.com/rishu132024-create/velto/issues"
 
 [project.scripts]
 velto = "velto_cli:main"
+
+[tool.setuptools]
+py-modules = [
+    "velto_cli",
+    "velto_ast",
+    "velto_lexer",
+    "velto_parser",
+    "velto_errors",
+    "velto_stdlib",
+    "velto_config",
+    "velto_packages",
+    "velto_registry",
+    "velto_publish",
+    "velto_search",
+    "velto_project",
+    "velto_http",
+    "velto_web",
+    "velto_rest",
+    "velto_db",
+    "velto_game",
+    "velto_graphics",
+    "velto_window",
+    "velto_input",
+    "velto_sprite",
+    "velto_animation",
+    "velto_collision",
+    "velto_sound",
+    "velto_physics",
+    "velto_ui",
+    "velto_buttons",
+    "velto_textfield",
+    "velto_layout",
+    "velto_app",
+    "velto_android",
+    "velto_formatter",
+    "velto_linter",
+    "velto_debugger",
+    "velto_test",
+    "velto_docs"
+]

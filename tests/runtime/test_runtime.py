@@ -45,9 +45,11 @@ class VeltoRuntimeTests(unittest.TestCase):
         )
         self.assertIn("Velto", output)
 
-    def test_boolean(self):
-        output = self.run_velto("say True")
-        self.assertIn("True", output)
+    def test_boolean_condition(self):
+        output = self.run_velto(
+            'if 10 > 5:\n    say "Boolean works"'
+        )
+        self.assertIn("Boolean works", output)
 
 
 if __name__ == "__main__":

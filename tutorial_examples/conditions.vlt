@@ -1,0 +1,4 @@
+name = "Velto"
+
+if name == "Velto":
+    say "Hello"

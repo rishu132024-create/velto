@@ -1,0 +1,9 @@
+name = input("Enter your name: ")
+
+say "Welcome to Velto!"
+say name
+
+age = input("Enter your age: ")
+
+say "Your age is:"
+say age

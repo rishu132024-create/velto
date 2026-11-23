@@ -1,0 +1,290 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #0b1120;
+    color: #e5e7eb;
+    font-family: Arial, sans-serif;
+}
+
+.topbar {
+    height: 65px;
+    padding: 0 18px;
+    background: #111827;
+    border-bottom: 1px solid #263247;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: #6366f1;
+    display: grid;
+    place-items: center;
+    font-size: 23px;
+    font-weight: bold;
+}
+
+.brand h1 {
+    margin: 0;
+    font-size: 19px;
+}
+
+.brand span {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.version {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+button {
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.run-button {
+    background: #16a34a;
+    color: white;
+    padding: 11px 18px;
+}
+
+.small-button {
+    background: #334155;
+    color: white;
+    padding: 7px 10px;
+    font-size: 12px;
+}
+
+.workspace {
+    max-width: 1250px;
+    margin: auto;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 15px;
+}
+
+.explorer,
+.editor-panel,
+.input-panel,
+.console-panel {
+    background: #111827;
+    border: 1px solid #263247;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.explorer {
+    min-height: 500px;
+}
+
+.explorer-heading {
+    padding: 14px 12px;
+    background: #172235;
+    border-bottom: 1px solid #263247;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.file-list {
+    padding: 8px;
+}
+
+.file-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 9px;
+    background: transparent;
+    color: #cbd5e1;
+    text-align: left;
+    margin-bottom: 4px;
+    overflow-wrap: anywhere;
+}
+
+.file-item.active {
+    background: #273449;
+    color: #a5b4fc;
+}
+
+.main-area {
+    min-width: 0;
+    display: grid;
+    gap: 15px;
+}
+
+.panel-heading,
+.console-heading {
+    padding: 13px 15px;
+    background: #172235;
+    border-bottom: 1px solid #263247;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.file-actions {
+    display: flex;
+    gap: 6px;
+}
+
+textarea {
+    display: block;
+    width: 100%;
+    resize: vertical;
+    border: none;
+    outline: none;
+    background: #0f172a;
+    color: #d1fae5;
+    padding: 17px;
+    font-family: monospace;
+    font-size: 15px;
+    line-height: 1.7;
+    tab-size: 4;
+}
+
+#code {
+    min-height: 300px;
+}
+
+#input {
+    min-height: 85px;
+    color: #facc15;
+}
+
+.status {
+    color: #4ade80;
+    font-size: 12px;
+}
+
+.tabs {
+    display: flex;
+    gap: 5px;
+    padding: 8px 12px 0;
+    background: #172235;
+}
+
+.tab {
+    padding: 9px 15px;
+    background: transparent;
+    color: #94a3b8;
+}
+
+.tab.active {
+    color: white;
+    background: #0f172a;
+}
+
+.console-content {
+    min-height: 130px;
+    max-height: 350px;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    padding: 17px;
+    margin: 0;
+    background: #0f172a;
+    color: #86efac;
+    font: 14px/1.7 monospace;
+}
+
+#errors {
+    color: #fca5a5;
+}
+
+.hidden {
+    display: none;
+}
+
+.input-actions {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    background: #0f172a;
+}
+
+.input-actions button {
+    min-width: 100px;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 18px;
+    color: #64748b;
+    font-size: 12px;
+    border-top: 1px solid #263247;
+}
+
+@media (max-width: 650px) {
+    .workspace {
+        grid-template-columns: 1fr;
+        padding: 10px;
+    }
+
+    .explorer {
+        min-height: auto;
+    }
+
+    .file-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .file-item {
+        width: auto;
+        margin: 0;
+    }
+
+    .version {
+        display: none;
+    }
+
+    .panel-heading {
+        flex-wrap: wrap;
+    }
+
+    #code {
+        min-height: 260px;
+        font-size: 14px;
+    }
+
+    footer {
+        padding: 14px 10px;
+    }
+}

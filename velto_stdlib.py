@@ -3,6 +3,7 @@ import json
 import math
 import os
 import random
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -574,7 +575,29 @@ def builtin_split(arguments):
     return text.split(separator)
 
 
+
+
+def builtin_input(arguments):
+    if len(arguments) > 1:
+        raise StdLibError("input() expects 0 or 1 argument")
+
+    if arguments:
+        prompt = str(arguments[0])
+        sys.stdout.write(prompt)
+        sys.stdout.flush()
+
+    value = sys.stdin.readline()
+
+    if value.endswith("\n"):
+        value = value[:-1]
+
+    if value.endswith("\r"):
+        value = value[:-1]
+
+    return value
+
 BUILTINS = {
+    "input": builtin_input,
     "len": builtin_len,
     "str": builtin_str,
     "int": builtin_int,

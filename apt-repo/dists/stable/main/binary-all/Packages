@@ -1,0 +1,15 @@
+Package: velto
+Version: 0.87.2
+Architecture: all
+Maintainer: Rishu132024-create
+Depends: python3
+Filename: apt-repo/pool/main/v/velto/velto_0.87.2_all.deb
+Size: 33716
+MD5sum: 539bb8d90870aa5dae4327656956f030
+SHA1: 8ce05a27720f138d4a8e2d28ad30a3fcd5c53fd1
+SHA256: e60b2b8295b81c42757830c8808cf9d51c821080d6a9faca48a40257e63a6cfa
+Section: devel
+Priority: optional
+Description: Velto programming language
+ Velto is a programming language and development environment.
+
