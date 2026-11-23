@@ -34,6 +34,7 @@ from velto_stdlib import BUILTINS, StdLibError
 
 
 class ASTInterpreterError(Exception):
+
     def __init__(self, message, line=None):
         self.message = message
         self.line = line
@@ -49,11 +50,57 @@ class ContinueSignal(Exception):
 
 
 class ReturnSignal(Exception):
+
     def __init__(self, value):
         self.value = value
 
 
+class Scope:
+
+    def __init__(self, parent=None):
+        self.values = {}
+        self.functions = {}
+        self.parent = parent
+
+    def define(self, name, value):
+        self.values[name] = value
+
+    def assign(self, name, value):
+        self.values[name] = value
+
+    def contains(self, name):
+        if name in self.values:
+            return True
+
+        if self.parent is not None:
+            return self.parent.contains(name)
+
+        return False
+
+    def get(self, name):
+        if name in self.values:
+            return self.values[name]
+
+        if self.parent is not None:
+            return self.parent.get(name)
+
+        raise KeyError(name)
+
+    def define_function(self, name, function):
+        self.functions[name] = function
+
+    def get_function(self, name):
+        if name in self.functions:
+            return self.functions[name]
+
+        if self.parent is not None:
+            return self.parent.get_function(name)
+
+        raise KeyError(name)
+
+
 class Function:
+
     def __init__(
         self,
         name,
@@ -68,28 +115,42 @@ class Function:
 
 
 class Module:
+
     def __init__(self, name):
         self.name = name
         self.variables = {}
         self.functions = {}
+        self.scope = None
 
 
 class ASTInterpreter:
+
     def __init__(self):
-        self.variables = {}
-        self.functions = {}
+        self.scope = Scope()
         self.modules = {}
         self.loop_limit = 10000
+
+    @property
+    def variables(self):
+        return self.scope.values
+
+    @variables.setter
+    def variables(self, values):
+        self.scope.values = values
+
+    @property
+    def functions(self):
+        return self.scope.functions
+
+    @functions.setter
+    def functions(self, functions):
+        self.scope.functions = functions
 
     def error(self, message, node=None):
         line = None
 
         if node is not None:
-            line = getattr(
-                node,
-                "line",
-                None
-            )
+            line = getattr(node, "line", None)
 
         raise ASTInterpreterError(
             message,
@@ -97,6 +158,7 @@ class ASTInterpreter:
         )
 
     def evaluate(self, node):
+
         if isinstance(node, NumberNode):
             return node.value
 
@@ -110,9 +172,9 @@ class ASTInterpreter:
             return None
 
         if isinstance(node, IdentifierNode):
+
             if "." in node.name:
                 parts = node.name.split(".")
-
                 module_name = parts[0]
                 member_name = ".".join(parts[1:])
 
@@ -127,24 +189,14 @@ class ASTInterpreter:
                         node
                     )
 
-            if node.name in self.modules:
-                module = self.modules[node.name]
+            try:
+                return self.scope.get(node.name)
 
-                if module.variables:
-                    return module.variables
-
-                self.error(
-                    f"Module has no variables: {node.name}",
-                    node
-                )
-
-            if node.name not in self.variables:
+            except KeyError:
                 self.error(
                     f"Variable not found: {node.name}",
                     node
                 )
-
-            return self.variables[node.name]
 
         if isinstance(node, ListNode):
             return [
@@ -167,6 +219,7 @@ class ASTInterpreter:
 
                 try:
                     result[key] = value
+
                 except TypeError:
                     self.error(
                         "Dictionary key must be hashable",
@@ -188,10 +241,7 @@ class ASTInterpreter:
                     node
                 )
 
-            except (
-                IndexError,
-                TypeError
-            ):
+            except (IndexError, TypeError):
                 self.error(
                     f"Invalid index: {index}",
                     node
@@ -247,14 +297,8 @@ class ASTInterpreter:
             if operator == ">=":
                 return left >= right
 
-        except (
-            TypeError,
-            ZeroDivisionError
-        ) as error:
-            self.error(
-                str(error),
-                node
-            )
+        except (TypeError, ZeroDivisionError) as error:
+            self.error(str(error), node)
 
         self.error(
             f"Unknown operator: {operator}",
@@ -262,6 +306,7 @@ class ASTInterpreter:
         )
 
     def execute(self, node):
+
         if isinstance(node, Program):
             for statement in node.statements:
                 self.execute(statement)
@@ -275,7 +320,11 @@ class ASTInterpreter:
         if isinstance(node, AssignmentNode):
             value = self.evaluate(node.value)
 
-            self.variables[node.name] = value
+            self.scope.assign(
+                node.name,
+                value
+            )
+
             return
 
         if isinstance(node, IndexAssignmentNode):
@@ -292,11 +341,7 @@ class ASTInterpreter:
             try:
                 target[index] = value
 
-            except (
-                IndexError,
-                KeyError,
-                TypeError
-            ):
+            except (IndexError, KeyError, TypeError):
                 self.error(
                     f"Invalid index: {index}",
                     node
@@ -305,8 +350,7 @@ class ASTInterpreter:
             return
 
         if isinstance(node, SayNode):
-            value = self.evaluate(node.value)
-            print(value)
+            print(self.evaluate(node.value))
             return
 
         if isinstance(node, ExpressionStatementNode):
@@ -359,8 +403,17 @@ class ASTInterpreter:
                     node
                 )
 
+            if len(values) > self.loop_limit:
+                self.error(
+                    "For loop iteration limit exceeded",
+                    node
+                )
+
             for value in values:
-                self.variables[node.variable] = value
+                self.scope.assign(
+                    node.variable,
+                    value
+                )
 
                 try:
                     self.execute_block(node.body)
@@ -380,20 +433,25 @@ class ASTInterpreter:
             raise ContinueSignal()
 
         if isinstance(node, FunctionDefNode):
-            self.functions[node.name] = Function(
+            function = Function(
                 node.name,
                 node.parameters,
                 node.body,
-                dict(self.variables)
+                self.scope
+            )
+
+            self.scope.define_function(
+                node.name,
+                function
             )
 
             return
 
         if isinstance(node, ReturnNode):
-            if node.value is None:
+            if node.expression is None:
                 raise ReturnSignal(None)
 
-            value = self.evaluate(node.value)
+            value = self.evaluate(node.expression)
             raise ReturnSignal(value)
 
         self.error(
@@ -416,14 +474,10 @@ class ASTInterpreter:
                 return BUILTINS[node.name](arguments)
 
             except StdLibError as error:
-                self.error(
-                    str(error),
-                    node
-                )
+                self.error(str(error), node)
 
         if "." in node.name:
             parts = node.name.split(".")
-
             module_name = parts[0]
             function_name = ".".join(parts[1:])
 
@@ -440,13 +494,14 @@ class ASTInterpreter:
                 arguments
             )
 
-        if node.name not in self.functions:
+        try:
+            function = self.scope.get_function(node.name)
+
+        except KeyError:
             self.error(
                 f"Function not found: {node.name}",
                 node
             )
-
-        function = self.functions[node.name]
 
         return self.execute_function(
             function,
@@ -463,23 +518,27 @@ class ASTInterpreter:
         if len(arguments) != len(function.parameters):
             self.error(
                 f"Function {function.name} expects "
-                f"{len(function.parameters)} "
-                f"arguments, got "
+                f"{len(function.parameters)} arguments, got "
                 f"{len(arguments)}",
                 node
             )
 
-        old_variables = self.variables
-        old_functions = self.functions
+        old_scope = self.scope
 
-        self.variables = dict(function.closure)
-        self.functions = dict(self.functions)
+        local_scope = Scope(
+            parent=function.closure
+        )
+
+        self.scope = local_scope
 
         for parameter, argument in zip(
             function.parameters,
             arguments
         ):
-            self.variables[parameter] = argument
+            local_scope.define(
+                parameter,
+                argument
+            )
 
         try:
             self.execute_block(function.body)
@@ -488,8 +547,7 @@ class ASTInterpreter:
             return signal.value
 
         finally:
-            self.variables = old_variables
-            self.functions = old_functions
+            self.scope = old_scope
 
         return None
 
@@ -509,100 +567,24 @@ class ASTInterpreter:
 
         function = module.functions[function_name]
 
-        if len(arguments) != len(function.parameters):
-            self.error(
-                f"Function "
-                f"{module.name}.{function_name} "
-                f"expects "
-                f"{len(function.parameters)} "
-                f"arguments, got "
-                f"{len(arguments)}",
-                node
-            )
-
-        old_variables = self.variables
-        old_functions = self.functions
-
-        self.variables = dict(module.variables)
-        self.functions = dict(module.functions)
-
-        for parameter, argument in zip(
-            function.parameters,
+        return self.execute_function(
+            function,
+            node,
             arguments
-        ):
-            self.variables[parameter] = argument
-
-        try:
-            self.execute_block(function.body)
-
-        except ReturnSignal as signal:
-            return signal.value
-
-        finally:
-            self.variables = old_variables
-            self.functions = old_functions
-
-        return None
-
-    def find_module_path(self, module_name):
-        current = Path.cwd().resolve()
-
-        while True:
-            package_path = (
-                current
-                / ".velto"
-                / "packages"
-                / module_name
-                / f"{module_name}.vlt"
-            )
-
-            if package_path.is_file():
-                return package_path
-
-            package_directory = (
-                current
-                / ".velto"
-                / "packages"
-                / module_name
-            )
-
-            if package_directory.is_dir():
-                candidates = sorted(
-                    package_directory.glob("*.vlt")
-                )
-
-                if candidates:
-                    return candidates[0]
-
-            examples_path = (
-                current
-                / "examples"
-                / f"{module_name}.vlt"
-            )
-
-            if examples_path.is_file():
-                return examples_path
-
-            parent = current.parent
-
-            if parent == current:
-                break
-
-            current = parent
-
-        return None
+        )
 
     def import_module(self, node):
-        module_name = node.module
+        module_name = node.name
 
         if module_name in self.modules:
             return
 
-        module_path = self.find_module_path(
-            module_name
+        module_path = (
+            Path("examples")
+            / f"{module_name}.vlt"
         )
 
-        if module_path is None:
+        if not module_path.exists():
             self.error(
                 f"Module not found: {module_name}",
                 node
@@ -614,20 +596,18 @@ class ASTInterpreter:
             )
 
             tokens = tokenize(source)
-
             tree = parse(tokens)
 
         except ParserError as error:
             self.error(
-                f"Module '{module_name}' "
-                f"parse error: {error.message}",
+                f"Module '{module_name}' parse error: "
+                f"{error.message}",
                 node
             )
 
         except Exception as error:
             self.error(
-                f"Module '{module_name}' "
-                f"lexer error: {error}",
+                f"Module '{module_name}' lexer error: {error}",
                 node
             )
 
@@ -638,20 +618,15 @@ class ASTInterpreter:
 
         except ASTInterpreterError as error:
             self.error(
-                f"Module '{module_name}' "
-                f"error: {error.message}",
+                f"Module '{module_name}' error: {error.message}",
                 node
             )
 
         module = Module(module_name)
 
-        module.variables = dict(
-            module_interpreter.variables
-        )
-
-        module.functions = dict(
-            module_interpreter.functions
-        )
+        module.scope = module_interpreter.scope
+        module.variables = dict(module.scope.values)
+        module.functions = dict(module.scope.functions)
 
         self.modules[module_name] = module
 
