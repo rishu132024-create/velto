@@ -1,35 +1,61 @@
 class VeltoError(Exception):
-    def __init__(self, message, filename=None, line=None, source_line=None):
-        self.message = message
+
+    def __init__(
+        self,
+        message,
+        filename=None,
+        line=None,
+        source_line=None,
+        column=None,
+        hint=None
+    ):
+        self.message = str(message)
         self.filename = filename
         self.line = line
         self.source_line = source_line
+        self.column = column
+        self.hint = hint
 
-        super().__init__(message)
+        super().__init__(self.message)
 
     def format(self):
-        lines = ["Velto Error"]
+        parts = ["Velto Error", ""]
 
         if self.filename:
-            lines.append(f"File: {self.filename}")
+            parts.append("File: " + str(self.filename))
 
         if self.line is not None:
-            lines.append(f"Line: {self.line}")
+            parts.append("Line: " + str(self.line))
 
         if self.filename or self.line is not None:
-            lines.append("")
+            parts.append("")
 
         if self.source_line:
-            lines.append(f"    {self.source_line}")
+            source = str(self.source_line).rstrip("\r\n")
+            parts.append("    " + source)
 
-            if self.line is not None:
-                lines.append(
-                    f"    {' ' * 0}^"
-                )
+            if self.column is not None:
+                position = max(0, int(self.column) - 1)
+                parts.append("    " + (" " * position) + "^")
+            else:
+                parts.append("    ^")
 
-        if self.source_line:
-            lines.append("")
+            parts.append("")
 
-        lines.append(f"Error: {self.message}")
+        parts.append("Error: " + self.message)
 
-        return "\n".join(lines)
+        if self.hint:
+            parts.append("")
+            parts.append("Hint: " + str(self.hint))
+
+        return "\n".join(parts)
+
+    def __str__(self):
+        return self.format()
+
+
+def format_error(error):
+    if isinstance(error, VeltoError):
+        return error.format()
+
+    return "Velto Error\n\nError: " + str(error)
