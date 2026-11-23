@@ -1,0 +1,11 @@
+function add(a, b = 10):
+    return a + b
+
+function calculate(value):
+    function multiply(number):
+        return number * value
+    return multiply(5)
+
+say add(20)
+say add(b = 30, a = 10)
+say calculate(4)
