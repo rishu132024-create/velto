@@ -475,28 +475,35 @@ class Parser:
         )
 
         parameters = []
+        has_default = False
 
-        if not self.match(
-            "DELIMITER",
-            ")"
-        ):
+        if not self.match("DELIMITER", ")"):
             while True:
-                parameters.append(
-                    self.expect(
-                        "IDENTIFIER"
-                    ).value
-                )
+                parameter_token = self.expect("IDENTIFIER")
+                parameter_name = parameter_token.value
+                default_expression = None
+                parameter_has_default = False
 
-                if self.match(
-                    "DELIMITER",
-                    ")"
-                ):
+                if self.match("OPERATOR", "="):
+                    default_expression = self.parse_expression()
+                    parameter_has_default = True
+                    has_default = True
+                elif has_default:
+                    raise ParserError(
+                        "Required parameter cannot follow a default parameter",
+                        parameter_token.line
+                    )
+
+                parameters.append((
+                    parameter_name,
+                    default_expression,
+                    parameter_has_default
+                ))
+
+                if self.match("DELIMITER", ")"):
                     break
 
-                self.expect(
-                    "DELIMITER",
-                    ","
-                )
+                self.expect("DELIMITER", ",")
 
         self.expect(
             "DELIMITER",

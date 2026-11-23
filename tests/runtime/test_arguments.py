@@ -44,7 +44,7 @@ class VeltoArgumentTests(unittest.TestCase):
         )
         output = result.stdout + result.stderr
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("expects 2 arguments, got 1", output)
+        self.assertIn("expects 2 to 2 arguments, got 1", output)
 
     def test_too_many_arguments(self):
         result = self.run_velto(
@@ -54,7 +54,7 @@ class VeltoArgumentTests(unittest.TestCase):
         )
         output = result.stdout + result.stderr
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("expects 2 arguments, got 3", output)
+        self.assertIn("expects 2 to 2 arguments, got 3", output)
 
     def test_zero_arguments(self):
         result = self.run_velto(

@@ -433,9 +433,23 @@ class ASTInterpreter:
             raise ContinueSignal()
 
         if isinstance(node, FunctionDefNode):
+            parameters = []
+
+            for parameter_name, default_expression, has_default in node.parameters:
+                if has_default:
+                    default_value = self.evaluate(default_expression)
+                else:
+                    default_value = None
+
+                parameters.append((
+                    parameter_name,
+                    has_default,
+                    default_value
+                ))
+
             function = Function(
                 node.name,
-                node.parameters,
+                parameters,
                 node.body,
                 self.scope
             )
@@ -515,10 +529,19 @@ class ASTInterpreter:
         node,
         arguments
     ):
-        if len(arguments) != len(function.parameters):
+        parameters = function.parameters
+
+        required_count = sum(
+            1 for name, has_default, value in parameters
+            if not has_default
+        )
+
+        total_count = len(parameters)
+
+        if len(arguments) < required_count or len(arguments) > total_count:
             self.error(
                 f"Function {function.name} expects "
-                f"{len(function.parameters)} arguments, got "
+                f"{required_count} to {total_count} arguments, got "
                 f"{len(arguments)}",
                 node
             )
@@ -531,13 +554,20 @@ class ASTInterpreter:
 
         self.scope = local_scope
 
-        for parameter, argument in zip(
-            function.parameters,
-            arguments
-        ):
+        for index, (parameter, has_default, default_value) in enumerate(parameters):
+            if index < len(arguments):
+                value = arguments[index]
+            elif has_default:
+                value = default_value
+            else:
+                self.error(
+                    f"Missing required argument: {parameter}",
+                    node
+                )
+
             local_scope.define(
                 parameter,
-                argument
+                value
             )
 
         try:
