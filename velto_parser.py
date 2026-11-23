@@ -141,9 +141,10 @@ class FunctionDefNode:
 
 
 class CallNode:
-    def __init__(self, name, arguments, line=None):
+    def __init__(self, name, arguments, line=None, keyword_arguments=None):
         self.name = name
         self.arguments = arguments
+        self.keyword_arguments = keyword_arguments or []
         self.line = line
 
 
@@ -711,41 +712,57 @@ class Parser:
                 "("
             ):
                 arguments = []
+                keyword_arguments = []
+                seen_keyword = False
 
-                if not self.match(
-                    "DELIMITER",
-                    ")"
-                ):
+                if not self.match("DELIMITER", ")"):
                     while True:
-                        arguments.append(
-                            self.parse_expression()
-                        )
-
-                        if self.match(
-                            "DELIMITER",
-                            ")"
+                        if (
+                            self.current().type == "IDENTIFIER"
+                            and self.peek().type == "OPERATOR"
+                            and self.peek().value == "="
                         ):
+                            seen_keyword = True
+                            keyword = self.advance()
+                            self.advance()
+
+                            if any(name == keyword.value for name, value in keyword_arguments):
+                                raise ParserError(
+                                    f"Duplicate keyword argument: {keyword.value}",
+                                    keyword.line
+                                )
+
+                            keyword_arguments.append((
+                                keyword.value,
+                                self.parse_expression()
+                            ))
+                        else:
+                            if seen_keyword:
+                                raise ParserError(
+                                    "Positional argument cannot follow a keyword argument",
+                                    self.current().line
+                                )
+
+                            arguments.append(self.parse_expression())
+
+                        if self.match("DELIMITER", ")"):
                             break
 
-                        self.expect(
-                            "DELIMITER",
-                            ","
-                        )
+                        self.expect("DELIMITER", ",")
 
-                if isinstance(
-                    node,
-                    IdentifierNode
-                ):
+                if isinstance(node, IdentifierNode):
                     node = CallNode(
                         node.name,
                         arguments,
-                        node.line
+                        node.line,
+                        keyword_arguments
                     )
                 else:
                     node = CallNode(
                         getattr(node, "name", ""),
                         arguments,
-                        getattr(node, "line", None)
+                        getattr(node, "line", None),
+                        keyword_arguments
                     )
 
                 continue

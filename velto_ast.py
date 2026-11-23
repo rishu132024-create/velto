@@ -483,7 +483,18 @@ class ASTInterpreter:
             for argument in node.arguments
         ]
 
+        keyword_arguments = [
+            (name, self.evaluate(value))
+            for name, value in node.keyword_arguments
+        ]
+
         if node.name in BUILTINS:
+            if keyword_arguments:
+                self.error(
+                    "Built-in functions do not support keyword arguments yet",
+                    node
+                )
+
             try:
                 return BUILTINS[node.name](arguments)
 
@@ -505,7 +516,8 @@ class ASTInterpreter:
                 self.modules[module_name],
                 function_name,
                 node,
-                arguments
+                arguments,
+                keyword_arguments
             )
 
         try:
@@ -520,16 +532,23 @@ class ASTInterpreter:
         return self.execute_function(
             function,
             node,
-            arguments
+            arguments,
+            keyword_arguments
         )
 
     def execute_function(
         self,
         function,
         node,
-        arguments
+        arguments,
+        keyword_arguments=None
     ):
         parameters = function.parameters
+        keyword_arguments = keyword_arguments or []
+
+        parameter_names = [
+            name for name, has_default, value in parameters
+        ]
 
         required_count = sum(
             1 for name, has_default, value in parameters
@@ -538,43 +557,67 @@ class ASTInterpreter:
 
         total_count = len(parameters)
 
-        if len(arguments) < required_count or len(arguments) > total_count:
+        if not keyword_arguments and (
+            len(arguments) < required_count
+            or len(arguments) > total_count
+        ):
             self.error(
                 f"Function {function.name} expects "
-                f"{required_count} to {total_count} arguments, got "
-                f"{len(arguments)}",
+                f"{required_count} to {total_count} arguments, "
+                f"got {len(arguments)}",
                 node
             )
 
-        old_scope = self.scope
+        if len(arguments) > total_count:
+            self.error(
+                f"Function {function.name} expects "
+                f"{required_count} to {total_count} arguments, "
+                f"got {len(arguments)}",
+                node
+            )
 
-        local_scope = Scope(
-            parent=function.closure
-        )
+        assigned = {}
 
-        self.scope = local_scope
+        for index, value in enumerate(arguments):
+            assigned[parameter_names[index]] = value
 
-        for index, (parameter, has_default, default_value) in enumerate(parameters):
-            if index < len(arguments):
-                value = arguments[index]
-            elif has_default:
-                value = default_value
-            else:
+        for name, value in keyword_arguments:
+            if name not in parameter_names:
                 self.error(
-                    f"Missing required argument: {parameter}",
+                    f"Function {function.name} got an unexpected keyword argument: {name}",
                     node
                 )
 
-            local_scope.define(
-                parameter,
-                value
-            )
+            if name in assigned:
+                self.error(
+                    f"Function {function.name} got multiple values for argument: {name}",
+                    node
+                )
+
+            assigned[name] = value
+
+        for name, has_default, default_value in parameters:
+            if name not in assigned:
+                if has_default:
+                    assigned[name] = default_value
+                else:
+                    self.error(
+                        f"Function {function.name} is missing required argument: {name}",
+                        node
+                    )
+
+        old_scope = self.scope
+        local_scope = Scope(parent=function.closure)
+        self.scope = local_scope
 
         try:
-            self.execute_block(function.body)
+            for name in parameter_names:
+                local_scope.define(name, assigned[name])
 
-        except ReturnSignal as signal:
-            return signal.value
+            try:
+                self.execute_block(function.body)
+            except ReturnSignal as signal:
+                return signal.value
 
         finally:
             self.scope = old_scope
@@ -586,7 +629,8 @@ class ASTInterpreter:
         module,
         function_name,
         node,
-        arguments
+        arguments,
+        keyword_arguments=None
     ):
         if function_name not in module.functions:
             self.error(
@@ -600,7 +644,8 @@ class ASTInterpreter:
         return self.execute_function(
             function,
             node,
-            arguments
+            arguments,
+            keyword_arguments
         )
 
     def import_module(self, node):
