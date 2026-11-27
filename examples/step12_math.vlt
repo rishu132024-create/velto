@@ -1,0 +1,6 @@
+say sqrt(25)
+say power(2, 3)
+say floor(4.9)
+say ceil(4.1)
+say round(4.6)
+say round(3.14159, 2)

@@ -1,0 +1,5 @@
+say random()
+say randint(1, 10)
+say choice([10, 20, 30, 40])
+numbers = [1, 2, 3, 4, 5]
+say shuffle(numbers)

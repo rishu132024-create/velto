@@ -1,0 +1,5 @@
+student = {"name": "Rishu", "age": 16, "language": "Velto"}
+
+say keys(student)
+say values(student)
+say items(student)

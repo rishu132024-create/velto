@@ -1,0 +1,9 @@
+data = json_parse("{\"name\": \"Velto\", \"version\": \"2.0\", \"active\": true}")
+
+say data
+
+say json_stringify(data)
+
+say data["name"]
+say data["version"]
+say data["active"]

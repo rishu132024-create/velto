@@ -46,6 +46,32 @@ def builtin_float(arguments):
         raise StdLibError("Cannot convert value to float")
 
 
+def builtin_type(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("type() expects 1 argument")
+
+    value = arguments[0]
+
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, str):
+        return "str"
+    if isinstance(value, int):
+        return "int"
+    if isinstance(value, float):
+        return "float"
+    if isinstance(value, list):
+        return "list"
+    if isinstance(value, dict):
+        return "dict"
+    if isinstance(value, tuple):
+        return "tuple"
+    if value is None:
+        return "NoneType"
+
+    return type(value).__name__
+
+
 def builtin_abs(arguments):
     if len(arguments) != 1:
         raise StdLibError("abs() expects 1 argument")
@@ -645,6 +671,7 @@ BUILTINS = {
     "str": builtin_str,
     "int": builtin_int,
     "float": builtin_float,
+    "type": builtin_type,
     "abs": builtin_abs,
     "min": builtin_min,
     "max": builtin_max,

@@ -1,0 +1,9 @@
+file_write("examples/velto_test.txt", "Hello Velto")
+say file_read("examples/velto_test.txt")
+
+file_append("examples/velto_test.txt", " Standard Library")
+say file_read("examples/velto_test.txt")
+
+say file_exists("examples/velto_test.txt")
+file_delete("examples/velto_test.txt")
+say file_exists("examples/velto_test.txt")

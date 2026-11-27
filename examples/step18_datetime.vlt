@@ -1,0 +1,8 @@
+say now()
+say today()
+say timestamp()
+say time_format("%Y-%m-%d")
+say time_format("%H:%M:%S")
+say "Waiting..."
+sleep(1)
+say "Done!"

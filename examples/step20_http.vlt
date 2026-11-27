@@ -1,0 +1,9 @@
+say "Testing HTTP GET"
+get_response = http_get("https://postman-echo.com/get?source=velto")
+say get_response
+
+say "Testing HTTP POST"
+post_response = http_post("https://postman-echo.com/post", "{\"language\":\"Velto\",\"step\":20}")
+say post_response
+
+say "HTTP tests completed"
