@@ -1,0 +1,6 @@
+say upper("velto")
+say lower("VELTO")
+say trim("  Hello Velto  ")
+say replace("hello", "h", "H")
+say split("apple,banana,mango", ",")
+say contains("Hello Velto", "Velto")

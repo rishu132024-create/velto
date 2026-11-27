@@ -596,6 +596,49 @@ def builtin_input(arguments):
 
     return value
 
+
+
+def builtin_upper(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("upper() expects 1 argument")
+
+    if not isinstance(arguments[0], str):
+        raise StdLibError("upper() requires a string")
+
+    return arguments[0].upper()
+
+
+def builtin_lower(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("lower() expects 1 argument")
+
+    if not isinstance(arguments[0], str):
+        raise StdLibError("lower() requires a string")
+
+    return arguments[0].lower()
+
+
+def builtin_trim(arguments):
+    if len(arguments) != 1:
+        raise StdLibError("trim() expects 1 argument")
+
+    if not isinstance(arguments[0], str):
+        raise StdLibError("trim() requires a string")
+
+    return arguments[0].strip()
+
+
+def builtin_replace(arguments):
+    if len(arguments) != 3:
+        raise StdLibError("replace() expects 3 arguments")
+
+    text, old, new = arguments
+
+    if not all(isinstance(value, str) for value in arguments):
+        raise StdLibError("replace() requires strings")
+
+    return text.replace(old, new)
+
 BUILTINS = {
     "input": builtin_input,
     "len": builtin_len,
@@ -641,5 +684,9 @@ BUILTINS = {
     "sort": builtin_sort,
     "reverse": builtin_reverse,
     "join": builtin_join,
-    "split": builtin_split
+    "split": builtin_split,
+    "upper": builtin_upper,
+    "lower": builtin_lower,
+    "trim": builtin_trim,
+    "replace": builtin_replace
 }
